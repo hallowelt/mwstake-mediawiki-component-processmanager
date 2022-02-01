@@ -1,7 +1,7 @@
 {
 	"name": "mwstake/mediawiki-component-processmanager",
 	"description": "Provides a management system for background processes",
-    "authors": [
+	"authors": [
 		{
 			"name": "BlueSpice",
 			"email": "support@bluespice.com"
@@ -12,7 +12,7 @@
 		"symfony/process": "~5",
 		"symfony/filesystem": "~3"
 	},
-    "require-dev": {
+	"require-dev": {
 		"jakub-onderka/php-parallel-lint": "1.0.0",
 		"jakub-onderka/php-console-highlighter": "0.4.0",
 		"mediawiki/mediawiki-codesniffer": "29.0.0",
