@@ -1,0 +1,41 @@
+{
+	"name": "mwstake/mediawiki-component-processmanager",
+	"description": "Provides a management system for background processes",
+    "authors": [
+		{
+			"name": "BlueSpice",
+			"email": "support@bluespice.com"
+		}
+	],
+	"require": {
+		"composer/installers": "~1.0",
+		"symfony/process": "~5",
+		"symfony/filesystem": "~3"
+	},
+    "require-dev": {
+		"jakub-onderka/php-parallel-lint": "1.0.0",
+		"jakub-onderka/php-console-highlighter": "0.4.0",
+		"mediawiki/mediawiki-codesniffer": "29.0.0",
+		"mediawiki/minus-x": "1.0.0"
+	},
+	"autoload": {
+		"psr-4": {
+			"MWStake\\MediaWiki\\Component\\ProcessManager\\": "src/",
+			"MWStake\\MediaWiki\\Component\\ProcessManager\\Tests\\": "tests/"
+		},
+		"files": [
+			"bootstrap.php"
+		]
+	},
+	"scripts": {
+		"test": [
+			"parallel-lint . --exclude vendor --exclude node_modules",
+			"minus-x check .",
+			"phpcs -sp"
+		],
+		"fix": [
+			"minus-x fix .",
+			"phpcbf"
+		]
+	}
+}
