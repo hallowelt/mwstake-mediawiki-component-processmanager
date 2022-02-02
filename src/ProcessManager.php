@@ -3,12 +3,15 @@
 namespace MWStake\MediaWiki\Component\ProcessManager;
 
 
+use Cassandra\Date;
 use DateTime;
 use Symfony\Component\Process\Process;
 use Wikimedia\Rdbms\ILoadBalancer;
 
 class ProcessManager {
 	private ILoadBalancer $loadBalancer;
+	/** @var int Number of minutes after which to delete processes */
+	private $garbageInterval = 60;
 
 	/**
 	 * @param ILoadBalancer $loadBalancer
@@ -17,11 +20,11 @@ class ProcessManager {
 		$this->loadBalancer = $loadBalancer;
 	}
 
-	public function getProcessInfo( int $pid ): ?ProcessInfo {
+	public function getProcessInfo( $pid ): ?ProcessInfo {
 		return $this->loadProcess( $pid );
 	}
 
-	public function getProcessStatus( int $pid ): ?string {
+	public function getProcessStatus( $pid ): ?string {
 		$processInfo = $this->loadProcess( $pid );
 		if ( $processInfo ) {
 			return $processInfo->getState();
@@ -30,28 +33,13 @@ class ProcessManager {
 		return null;
 	}
 
-	public function startProcess( ManagedProcess $process ): int {
+	public function startProcess( ManagedProcess $process ): string {
 		return $process->start( $this );
 	}
 
-	public function stopProcess( int $pid ): bool {
-		$info = $this->loadProcess( $pid );
-		if ( !$info ) {
-			return false;
-		}
-		if  (function_exists( 'posix_kill' ) ) {
-			$status = posix_kill( $pid, 15 );
-		} elseif ( function_exists('exec') && strstr( PHP_OS, 'WIN' ) ) {
-			$status = exec( "taskkill /F /PID $pid" ) ? true : false;
-		}
-		if ( $status ) {
-			return $this->updateInfo( $pid, [ 'p_state' => Process::STATUS_TERMINATED, 'p_exitcode' => 137 /*interrupt*/ ] );
-		}
+	private function loadProcess( $pid ): ?ProcessInfo {
+		$this->garbageCollect();
 
-		return false;
-	}
-
-	private function loadProcess( int $pid ): ?ProcessInfo {
 		$row = $this->loadBalancer->getConnection( DB_REPLICA )->selectRow(
 			'processes',
 			[
@@ -59,7 +47,8 @@ class ProcessManager {
 				'p_state',
 				'p_exitcode',
 				'p_exitstatus',
-				'p_started'
+				'p_started',
+				'p_timeout',
 			],
 			[
 				'p_pid' => $pid
@@ -70,10 +59,9 @@ class ProcessManager {
 		if ( !$row ) {
 			return null;
 		}
-
 		$info = ProcessInfo::newFromRow( $row );
-		if ( $this->isTimeoutReached( $info ) ) {
-			$this->recordFinish( $info->getPid(), 152, 'Timeout reached' );
+		if ( $info->getState() === Process::STATUS_STARTED && $this->isTimeoutReached( $info ) ) {
+			$this->recordFinish( $info->getPid(), 152, 'Execution time too long' );
 			return $this->loadProcess( $info->getPid() );
 		}
 
@@ -83,7 +71,7 @@ class ProcessManager {
 	/**
 	 * Record end of the process
 	 *
-	 * @param int $pid
+	 * @param string $pid
 	 * @param int $exitCode
 	 * @param string $exitStatus
 	 * @return bool
@@ -102,25 +90,29 @@ class ProcessManager {
 	/**
 	 * Record starting of the process
 	 *
-	 * @param ManagedProcess $process
+	 * @param string $pid
+	 * @param int $timeout
 	 * @return bool
 	 */
-	public function recordStart( ManagedProcess $process ): bool {
-		$db = $this->loadBalancer->getConnection( DB_PRIMARY );
-		return $db->insert(
+	public function recordStart( $pid, $timeout ): bool {
+		$db = $this->loadBalancer->getConnection( DB_PRIMARY, [], false, 1 );
+		$res = $db->insert(
 			'processes',
 			[
-				'p_pid' => $process->getParentProcess()->getPid(),
+				'p_pid' => $pid,
 				'p_state' => Process::STATUS_STARTED,
-				'p_timeout' => $process->getParentProcess()->getTimeout(),
+				'p_timeout' => $timeout,
 				'p_started' => $db->timestamp( ( new DateTime() )->format( 'YmdHis' ) )
 			],
 			__METHOD__
 		);
+
+		return $res;
 	}
 
-	private function updateInfo( int $pid, array $data ) {
-		return $this->loadBalancer->getConnection( DB_PRIMARY )->update(
+	private function updateInfo( $pid, array $data ) {
+		$db = $this->loadBalancer->getConnection( DB_PRIMARY, [], false, 1 );
+		return $db->update(
 			'processes',
 			$data,
 			[ 'p_pid' => $pid ],
@@ -137,6 +129,21 @@ class ProcessManager {
 		$maxTime = $start->add( new \DateInterval( "PT{$info->getTimeout()}S" ) );
 
 		return new DateTime() > $maxTime;
+	}
+
+	/**
+	 * Delete all processes older than 1h
+	 */
+	private function garbageCollect() {
+		$db = $this->loadBalancer->getConnection( DB_PRIMARY );
+		$hourAgo = ( new DateTime() )->sub( new \DateInterval( "PT{$this->garbageInterval}M" ) );
+		$db->delete(
+			'processes',
+			[
+				'p_started < ' . $db->timestamp( $hourAgo->format( 'YmdHis') )
+			],
+			__METHOD__
+		);
 	}
 
 }

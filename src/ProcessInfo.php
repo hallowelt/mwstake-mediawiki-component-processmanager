@@ -7,12 +7,8 @@ use stdClass;
 use Symfony\Component\VarDumper\Cloner\Data;
 
 class ProcessInfo implements \JsonSerializable {
-	public const PROCESS_STATE_RUNNING = 'running';
-	public const PROCESS_STATE_STOPPED = 'stopped';
-	public const PROCESS_STATE_FINISHED = 'finished';
-	public const PROCESS_STATE_ERROR = 'error';
 
-	/** @var int */
+	/** @var string */
 	private $pid;
 	/** @var string */
 	private $state;
@@ -31,7 +27,7 @@ class ProcessInfo implements \JsonSerializable {
 	 */
 	public static function newFromRow( stdClass $row ) {
 		return new static(
-			(int)$row->p_pid,
+			$row->p_pid,
 			$row->p_state,
 			DateTime::createFromFormat( 'YmdHis', $row->p_started ),
 			$row->p_timeout !== null ? (float)$row->p_timeout : null,
@@ -41,14 +37,14 @@ class ProcessInfo implements \JsonSerializable {
 	}
 
 	/**
-	 * @param int $pid
+	 * @param string $pid
 	 * @param string $state
 	 * @param DateTime $started
 	 * @param int|null $exitCode
 	 * @param string|null $exitStatus
 	 */
 	public function __construct(
-		int $pid, $state, DateTime $started, $timeout, $exitCode = null, $exitStatus = null
+		$pid, $state, DateTime $started, $timeout, $exitCode = null, $exitStatus = null
 	) {
 		$this->pid = $pid;
 		$this->state = $state;
@@ -58,7 +54,7 @@ class ProcessInfo implements \JsonSerializable {
 		$this->timeout = $timeout;
 	}
 
-	public function getPid(): int {
+	public function getPid(): string {
 		return $this->pid;
 	}
 
@@ -73,7 +69,7 @@ class ProcessInfo implements \JsonSerializable {
 	 * @return float|null
 	 */
 	public function getTimeout(): ?float {
-		return $this->getTimeout();
+		return $this->timeout;
 	}
 
 	/**
@@ -81,6 +77,20 @@ class ProcessInfo implements \JsonSerializable {
 	 */
 	public function getStartDate(): DateTime {
 		return $this->started;
+	}
+
+	/**
+	 * @return string|null
+	 */
+	public function getExitStateMessage(): ?string {
+		return $this->exitStatus;
+	}
+
+	/**
+	 * @return int|null
+	 */
+	public function getExitCode(): ?int {
+		return $this->exitCode;
 	}
 
 	/**
