@@ -49,6 +49,7 @@ class ProcessManager {
 				'p_exitstatus',
 				'p_started',
 				'p_timeout',
+				'p_output'
 			],
 			[
 				'p_pid' => $pid
@@ -61,8 +62,10 @@ class ProcessManager {
 		}
 		$info = ProcessInfo::newFromRow( $row );
 		if ( $info->getState() === Process::STATUS_STARTED && $this->isTimeoutReached( $info ) ) {
-			$this->recordFinish( $info->getPid(), 152, 'Execution time too long' );
-			return $this->loadProcess( $info->getPid() );
+			if ( $this->recordFinish( $info->getPid(), 152, 'Execution time too long' ) ) {
+				return $this->loadProcess( $info->getPid() );
+			}
+
 		}
 
 		return $info;
@@ -76,14 +79,12 @@ class ProcessManager {
 	 * @param string $exitStatus
 	 * @return bool
 	 */
-	public function recordFinish( $pid, int $exitCode, string $exitStatus = '' ) {
-		if ( !$this->loadProcess( $pid ) ) {
-			throw new \InvalidArgumentException( 'Process with PID ' . $pid . ' is not managed!' );
-		}
+	public function recordFinish( $pid, int $exitCode, string $exitStatus = '', $data = [] ) {
 		return $this->updateInfo( $pid, [
 			'p_state' => Process::STATUS_TERMINATED,
 			'p_exitcode' => $exitCode,
-			'p_exitstatus' => $exitStatus
+			'p_exitstatus' => $exitStatus,
+			'p_output' => json_encode( $data )
 		] );
 	}
 
@@ -95,7 +96,7 @@ class ProcessManager {
 	 * @return bool
 	 */
 	public function recordStart( $pid, $timeout ): bool {
-		$db = $this->loadBalancer->getConnection( DB_PRIMARY, [], false, 1 );
+		$db = $this->loadBalancer->getConnection( DB_PRIMARY );
 		$res = $db->insert(
 			'processes',
 			[
@@ -111,7 +112,7 @@ class ProcessManager {
 	}
 
 	private function updateInfo( $pid, array $data ) {
-		$db = $this->loadBalancer->getConnection( DB_PRIMARY, [], false, 1 );
+		$db = $this->loadBalancer->getConnection( DB_PRIMARY );
 		return $db->update(
 			'processes',
 			$data,

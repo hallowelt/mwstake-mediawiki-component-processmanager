@@ -20,6 +20,8 @@ class ProcessInfo implements \JsonSerializable {
 	private $started;
 	/** @var float */
 	private $timeout;
+	/** @var array */
+	private $data;
 
 	/**
 	 * @param stdClass $row
@@ -33,6 +35,7 @@ class ProcessInfo implements \JsonSerializable {
 			$row->p_timeout !== null ? (float)$row->p_timeout : null,
 			$row->p_exitcode !== null ? (int)$row->p_exitcode : null,
 			$row->p_exitstatus,
+			$row->p_output !== null ? json_decode( $row->p_output, 1 ) : []
 		);
 	}
 
@@ -44,7 +47,7 @@ class ProcessInfo implements \JsonSerializable {
 	 * @param string|null $exitStatus
 	 */
 	public function __construct(
-		$pid, $state, DateTime $started, $timeout, $exitCode = null, $exitStatus = null
+		$pid, $state, DateTime $started, $timeout, $exitCode = null, $exitStatus = null, $data = []
 	) {
 		$this->pid = $pid;
 		$this->state = $state;
@@ -52,6 +55,7 @@ class ProcessInfo implements \JsonSerializable {
 		$this->exitCode = $exitCode;
 		$this->exitStatus = $exitStatus;
 		$this->timeout = $timeout;
+		$this->data = $data;
 	}
 
 	public function getPid(): string {
@@ -93,6 +97,10 @@ class ProcessInfo implements \JsonSerializable {
 		return $this->exitCode;
 	}
 
+	public function getOutput(): array {
+		return $this->data;
+	}
+
 	/**
 	 * @return array
 	 */
@@ -102,7 +110,8 @@ class ProcessInfo implements \JsonSerializable {
 			'state' => $this->getState(),
 			'started' => $this->started->format( 'YmdHis' ),
 			'exitCode' => $this->exitCode,
-			'exitStatus' => $this->exitStatus
+			'exitStatus' => $this->exitStatus,
+			'output' => $this->data
 		];
 	}
 

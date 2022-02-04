@@ -15,6 +15,7 @@ class ProcessExecution extends Maintenance {
 			\MediaWiki\MediaWikiServices::getInstance()->getDBLoadBalancerFactory()->newMainLB()
 		);
 
+		$data = [];
 		try {
 			$input = $this->getStdin();
 			if ( !$input ) {
@@ -28,18 +29,18 @@ class ProcessExecution extends Maintenance {
 			}
 			$this->steps = $decoded;
 
-			$this->executeSteps();
+			$data = $this->executeSteps();
 		} catch ( Exception $ex ) {
 			$manager->recordFinish( $pid, 1, $ex->getMessage() );
 			exit();
 		}
 
-		$manager->recordFinish( $pid, 0 );
+		$manager->recordFinish( $pid, 0, '', $data );
 	}
 
 	private function executeSteps() {
 		$of = \MediaWiki\MediaWikiServices::getInstance()->getObjectFactory();
-		$steps = [];
+		$data = [];
 		foreach ( $this->steps as $name => $spec ) {
 			$object = $of->createObject( $spec );
 			if ( !( $object instanceof \MWStake\MediaWiki\Component\ProcessManager\IProcessStep ) ) {
@@ -48,17 +49,9 @@ class ProcessExecution extends Maintenance {
 					\MWStake\MediaWiki\Component\ProcessManager\IProcessStep::class
 				);
 			}
-			$steps[] = $object;
+			$data = $object->execute( $data );
 		}
-		if ( empty( $steps ) ) {
-			throw new Exception( 'No steps specified' );
-		}
-
-		// Now we actually execute steps, this is done separately, so we make sure all steps
-		// are valid before the execution starts
-		foreach ( $steps as $step ) {
-			$step->execute();
-		}
+		return $data;
 	}
 }
 
