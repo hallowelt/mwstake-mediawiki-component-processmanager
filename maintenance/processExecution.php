@@ -31,7 +31,7 @@ class ProcessExecution extends Maintenance {
 
 			$data = $this->executeSteps();
 		} catch ( Exception $ex ) {
-			$manager->recordFinish( $pid, 1, $ex->getMessage() );
+			$manager->recordFinish( $pid, 1, $ex->getMessage(), $ex->getPrevious()->getTrace() );
 			exit();
 		}
 
@@ -39,9 +39,10 @@ class ProcessExecution extends Maintenance {
 	}
 
 	private function executeSteps() {
-		$of = \MediaWiki\MediaWikiServices::getInstance()->getObjectFactory();
+
 		$data = [];
 		foreach ( $this->steps as $name => $spec ) {
+			$of = \MediaWiki\MediaWikiServices::getInstance()->getObjectFactory();
 			$object = $of->createObject( $spec );
 			if ( !( $object instanceof \MWStake\MediaWiki\Component\ProcessManager\IProcessStep ) ) {
 				throw new Exception(
@@ -49,7 +50,16 @@ class ProcessExecution extends Maintenance {
 					\MWStake\MediaWiki\Component\ProcessManager\IProcessStep::class
 				);
 			}
-			$data = $object->execute( $data );
+			try {
+				$data = $object->execute( $data );
+			} catch ( Exception $ex ) {
+				throw new Exception(
+					"Step \"$name\" failed: " . $ex->getMessage(),
+					$ex->getCode(),
+					$ex
+				);
+			}
+
 		}
 		return $data;
 	}
