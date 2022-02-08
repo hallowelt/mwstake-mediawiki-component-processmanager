@@ -12,7 +12,7 @@ class ManagedProcess {
 	private $timeout;
 
 
-	public function __construct( array $steps, $timeout = 60 ) {
+	public function __construct( array $steps, ?int $timeout = 60 ) {
 		$this->steps = $steps;
 		$this->timeout = $timeout;
 	}
@@ -35,15 +35,6 @@ class ManagedProcess {
 		$manager->recordStart( $pid, $this->timeout );
 		//$this->parentProcess->disableOutput();
 		$this->parentProcess->start();
-
-		if ( !$this->parentProcess->isRunning() ) {
-			// Process already done, insert dummy entry
-			$manager->recordStart( $pid, $this->timeout );
-			$manager->recordFinish(
-				$pid, $this->parentProcess->getExitCode(),
-				$this->parentProcess->getExitCodeText()
-			);
-		}
 
 		return $pid;
 	}

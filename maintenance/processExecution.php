@@ -42,15 +42,16 @@ class ProcessExecution extends Maintenance {
 
 		$data = [];
 		foreach ( $this->steps as $name => $spec ) {
-			$of = \MediaWiki\MediaWikiServices::getInstance()->getObjectFactory();
-			$object = $of->createObject( $spec );
-			if ( !( $object instanceof \MWStake\MediaWiki\Component\ProcessManager\IProcessStep ) ) {
-				throw new Exception(
-					"Specification of step \"$name\" does not produce object of type " .
-					\MWStake\MediaWiki\Component\ProcessManager\IProcessStep::class
-				);
-			}
 			try {
+				$of = \MediaWiki\MediaWikiServices::getInstance()->getObjectFactory();
+				$object = $of->createObject( $spec );
+				if ( !( $object instanceof \MWStake\MediaWiki\Component\ProcessManager\IProcessStep ) ) {
+					throw new Exception(
+						"Specification of step \"$name\" does not produce object of type " .
+						\MWStake\MediaWiki\Component\ProcessManager\IProcessStep::class
+					);
+				}
+
 				$data = $object->execute( $data );
 			} catch ( Exception $ex ) {
 				throw new Exception(

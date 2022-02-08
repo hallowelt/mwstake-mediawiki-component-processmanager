@@ -11,7 +11,7 @@ use Wikimedia\Rdbms\ILoadBalancer;
 class ProcessManager {
 	private ILoadBalancer $loadBalancer;
 	/** @var int Number of minutes after which to delete processes */
-	private $garbageInterval = 60;
+	private $garbageInterval = 600;
 
 	/**
 	 * @param ILoadBalancer $loadBalancer
