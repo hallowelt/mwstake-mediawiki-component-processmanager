@@ -11,60 +11,64 @@ as an input for the next, until the end. Last step will return its output as the
 Steps are defined as `ObjectFactory` specs. Object produced from such specs must be instance of `MWStake\MediaWiki\Component\ProcessManager\IProcessStep`.
 
 ## Sample step 
+```php
+class Foo implements IProcessStep {
 
-    class Foo implements IProcessStep {
-
-		private $lb;
-		/** @var string */
-		private $name;
+	private $lb;
+	/** @var string */
+	private $name;
 	
-		public function __construct( ILoadBalancer $lb, $name ) {
-			$this->lb = $lb;
-			$this->name = $name;
-		}
-
-		public function execute( $data = [] ): array  {
-            // Add "_bar" to the name passed as the argument in the spec and return it
-			$name = $this->name . '_bar';
-
-			// some lenghty code
-
-			return [ 'modifiedName' => $name ];
-		}
+	public function __construct( ILoadBalancer $lb, $name ) {
+		$this->lb = $lb;
+		$this->name = $name;
 	}
 
-## Creating process
+	public function execute( $data = [] ): array  {
+// Add "_bar" to the name passed as the argument in the spec and return it
+		$name = $this->name . '_bar';
 
-	// Create process that has a single step, Foo, defined above
-	// new ManagerProcess( array $steps, int $timeout );
-	$process = new ManagedProcess( [
-		'foo-step' => [
-			'class' => Foo::class,
-			'args' => [ 'Bar-name' ],
-			'services' => [ 'DBLoadBalancer' ]
-		]
-	], 300 );
+		// some lenghty code
+
+		return [ 'modifiedName' => $name ];
+	}
+}
+```
+
+## Creating process
+```php
+// Create process that has a single step, Foo, defined above
+// new ManagerProcess( array $steps, int $timeout );
+$process = new ManagedProcess( [
+	'foo-step' => [
+		'class' => Foo::class,
+		'args' => [ 'Bar-name' ],
+		'services' => [ 'DBLoadBalancer' ]
+	]
+], 300 );
 	
-	$processManager = MediaWikiServices::getInstance()->getService( 'ProcessManager' );
-	// ProcessManager::startProcess() returns unique process ID that is required
-	// later on to check on the process state
-	echo $processManager->startProcess( $process );
-	// 1211a33123aae2baa6ed1d9a1846da9d
+$processManager = MediaWikiServices::getInstance()->getService( 'ProcessManager' );
+// ProcessManager::startProcess() returns unique process ID that is required
+// later on to check on the process state
+echo $processManager->startProcess( $process );
+// 1211a33123aae2baa6ed1d9a1846da9d
+```
 
 ## Checking process status
 
 Once the process is started using the procedure above, and we obtain the process id, we can check on its status
 anytime, from anywhere, even from different process then the one that started the process
 
-	$processManager = MediaWikiServices::getInstance()->getService( 'ProcessManager' );
-	echo $processManager->getProcessInfo( $pid );
-	// Returns JSON
-	{
-		"pid": "1211a33123aae2baa6ed1d9a1846da9d",
-		"started_at": "20220209125814",
-		"status": "finished",
-		"output": { /*JSON-encoded string of whatever the last step returned as output*/ }
-	}
+```php
+$processManager = MediaWikiServices::getInstance()->getService( 'ProcessManager' );
+echo $processManager->getProcessInfo( $pid );
+// Returns JSON
+{
+	"pid": "1211a33123aae2baa6ed1d9a1846da9d",
+	"started_at": "20220209125814",
+	"status": "finished",
+	"output": { /*JSON-encoded string of whatever the last step returned as output*/ }
+}
+```
 
 In case of an error, response will contain status `error`, and show Exception message and callstack.
 
