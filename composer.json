@@ -1,6 +1,7 @@
 {
 	"name": "mwstake/mediawiki-component-processmanager",
 	"description": "Provides a management system for background processes",
+	"license": "GPL-3.0-only",
 	"authors": [
 		{
 			"name": "BlueSpice",
