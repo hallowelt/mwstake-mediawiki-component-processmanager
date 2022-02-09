@@ -4,7 +4,6 @@ namespace MWStake\MediaWiki\Component\ProcessManager;
 
 use DateTime;
 use stdClass;
-use Symfony\Component\VarDumper\Cloner\Data;
 
 class ProcessInfo implements \JsonSerializable {
 
@@ -43,8 +42,10 @@ class ProcessInfo implements \JsonSerializable {
 	 * @param string $pid
 	 * @param string $state
 	 * @param DateTime $started
+	 * @param int $timeout
 	 * @param int|null $exitCode
 	 * @param string|null $exitStatus
+	 * @param array|null $data
 	 */
 	public function __construct(
 		$pid, $state, DateTime $started, $timeout, $exitCode = null, $exitStatus = null, $data = []
@@ -58,6 +59,9 @@ class ProcessInfo implements \JsonSerializable {
 		$this->data = $data;
 	}
 
+	/**
+	 * @return string
+	 */
 	public function getPid(): string {
 		return $this->pid;
 	}
@@ -97,6 +101,9 @@ class ProcessInfo implements \JsonSerializable {
 		return $this->exitCode;
 	}
 
+	/**
+	 * @return array
+	 */
 	public function getOutput(): array {
 		return $this->data;
 	}
@@ -114,7 +121,5 @@ class ProcessInfo implements \JsonSerializable {
 			'output' => $this->data
 		];
 	}
-
-
 
 }

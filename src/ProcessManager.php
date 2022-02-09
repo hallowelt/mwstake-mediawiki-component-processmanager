@@ -2,8 +2,6 @@
 
 namespace MWStake\MediaWiki\Component\ProcessManager;
 
-
-use Cassandra\Date;
 use DateTime;
 use Symfony\Component\Process\Process;
 use Wikimedia\Rdbms\ILoadBalancer;
@@ -20,10 +18,18 @@ class ProcessManager {
 		$this->loadBalancer = $loadBalancer;
 	}
 
+	/**
+	 * @param string $pid
+	 * @return ProcessInfo|null
+	 */
 	public function getProcessInfo( $pid ): ?ProcessInfo {
 		return $this->loadProcess( $pid );
 	}
 
+	/**
+	 * @param string $pid
+	 * @return string|null
+	 */
 	public function getProcessStatus( $pid ): ?string {
 		$processInfo = $this->loadProcess( $pid );
 		if ( $processInfo ) {
@@ -33,10 +39,18 @@ class ProcessManager {
 		return null;
 	}
 
+	/**
+	 * @param ManagedProcess $process
+	 * @return string
+	 */
 	public function startProcess( ManagedProcess $process ): string {
 		return $process->start( $this );
 	}
 
+	/**
+	 * @param string $pid
+	 * @return ProcessInfo|null
+	 */
 	private function loadProcess( $pid ): ?ProcessInfo {
 		$this->garbageCollect();
 
@@ -77,6 +91,7 @@ class ProcessManager {
 	 * @param string $pid
 	 * @param int $exitCode
 	 * @param string $exitStatus
+	 * @param array|null $data
 	 * @return bool
 	 */
 	public function recordFinish( $pid, int $exitCode, string $exitStatus = '', $data = [] ) {
@@ -111,6 +126,11 @@ class ProcessManager {
 		return $res;
 	}
 
+	/**
+	 * @param string $pid
+	 * @param array $data
+	 * @return bool
+	 */
 	private function updateInfo( $pid, array $data ) {
 		$db = $this->loadBalancer->getConnection( DB_PRIMARY );
 		return $db->update(
@@ -141,7 +161,7 @@ class ProcessManager {
 		$db->delete(
 			'processes',
 			[
-				'p_started < ' . $db->timestamp( $hourAgo->format( 'YmdHis') )
+				'p_started < ' . $db->timestamp( $hourAgo->format( 'YmdHis' ) )
 			],
 			__METHOD__
 		);

@@ -1,7 +1,7 @@
 <?php
 
-require_once( $argv[1] );
-require_once( $argv[2] );
+require_once $argv[1];
+require_once $argv[2];
 
 class ProcessExecution extends Maintenance {
 	/** @var array */
@@ -25,7 +25,7 @@ class ProcessExecution extends Maintenance {
 			$decoded = json_decode( $content, 1 );
 			$code = json_last_error();
 			if ( $code ) {
-				throw new Exception( "Cannot parse steps: {$code}");
+				throw new Exception( "Cannot parse steps: {$code}" );
 			}
 			$this->steps = $decoded;
 
@@ -39,7 +39,6 @@ class ProcessExecution extends Maintenance {
 	}
 
 	private function executeSteps() {
-
 		$data = [];
 		foreach ( $this->steps as $name => $spec ) {
 			try {
@@ -67,4 +66,4 @@ class ProcessExecution extends Maintenance {
 }
 
 $maintClass = 'ProcessExecution';
-require_once( RUN_MAINTENANCE_IF_MAIN );
+require_once RUN_MAINTENANCE_IF_MAIN;
