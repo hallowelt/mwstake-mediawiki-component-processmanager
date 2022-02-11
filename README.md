@@ -24,7 +24,7 @@ class Foo implements IProcessStep {
 	}
 
 	public function execute( $data = [] ): array  {
-// Add "_bar" to the name passed as the argument in the spec and return it
+	// Add "_bar" to the name passed as the argument in the spec and return it
 		$name = $this->name . '_bar';
 
 		// some lenghty code
