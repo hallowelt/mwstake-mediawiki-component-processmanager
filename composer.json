@@ -18,7 +18,8 @@
 		"jakub-onderka/php-parallel-lint": "1.0.0",
 		"jakub-onderka/php-console-highlighter": "0.4.0",
 		"mediawiki/mediawiki-codesniffer": "29.0.0",
-		"mediawiki/minus-x": "1.0.0"
+		"mediawiki/minus-x": "1.0.0",
+		"phpunit/phpunit": "^8.5"
 	},
 	"autoload": {
 		"psr-4": {
@@ -30,6 +31,9 @@
 		]
 	},
 	"scripts": {
+		"phpunit": [
+			"../../../tests/phpunit/phpunit.php -c .phpunit.xml"
+		],
 		"test": [
 			"parallel-lint . --exclude vendor --exclude node_modules",
 			"minus-x check .",
