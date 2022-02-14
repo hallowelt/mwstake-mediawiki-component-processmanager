@@ -6,6 +6,8 @@ require_once $argv[2];
 class ProcessExecution extends Maintenance {
 	/** @var array */
 	private $steps = [];
+	/** @var array */
+	private $initData = [];
 
 	public function execute() {
 		global $argv;
@@ -27,9 +29,14 @@ class ProcessExecution extends Maintenance {
 			if ( $code ) {
 				throw new Exception( "Cannot parse steps: {$code}" );
 			}
-			$this->steps = $decoded;
+			$this->steps = $decoded['steps'];
+			$this->initData = $decoded['data'] ?? [];
 
 			$data = $this->executeSteps();
+			if ( isset( $data['interrupt' ] ) ) {
+				$manager->recordInterrupt( $pid, $data['interrupt'], $data['data'] );
+				exit();
+			}
 		} catch ( Exception $ex ) {
 			$manager->recordFinish( $pid, 1, $ex->getMessage(), $ex->getPrevious()->getTrace() );
 			exit();
@@ -39,10 +46,10 @@ class ProcessExecution extends Maintenance {
 	}
 
 	private function executeSteps() {
-		$data = [];
+		$data = $this->initData;
+		$of = \MediaWiki\MediaWikiServices::getInstance()->getObjectFactory();
 		foreach ( $this->steps as $name => $spec ) {
 			try {
-				$of = \MediaWiki\MediaWikiServices::getInstance()->getObjectFactory();
 				$object = $of->createObject( $spec );
 				if ( !( $object instanceof \MWStake\MediaWiki\Component\ProcessManager\IProcessStep ) ) {
 					throw new Exception(
@@ -52,6 +59,12 @@ class ProcessExecution extends Maintenance {
 				}
 
 				$data = $object->execute( $data );
+				if ( $object instanceof \MWStake\MediaWiki\Component\ProcessManager\InterruptingProcessStep ) {
+					return [
+						'interrupt' => $name,
+						'data' => $data ?? [],
+					];
+				}
 			} catch ( Exception $ex ) {
 				throw new Exception(
 					"Step \"$name\" failed: " . $ex->getMessage(),

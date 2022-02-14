@@ -6,7 +6,7 @@ if ( defined( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION' ) ) {
 
 define( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION', '1.0.0' );
 
-MWStake\MediaWiki\ComponentLoader\Bootstrapper::getInstance()
+\MWStake\MediaWiki\ComponentLoader\Bootstrapper::getInstance()
 	->register( 'processmanager', function () {
 		$GLOBALS['wgServiceWiringFiles'][] = __DIR__ . '/includes/ServiceWiring.php';
 		$GLOBALS['wgHooks']['LoadExtensionSchemaUpdates'][] = function ( DatabaseUpdater $updater ) {

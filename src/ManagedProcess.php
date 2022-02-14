@@ -7,7 +7,6 @@ use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
 class ManagedProcess {
-
 	/** @var Process|null */
 	private $parentProcess = null;
 	/** @var array */
@@ -26,24 +25,26 @@ class ManagedProcess {
 
 	/**
 	 * @param ProcessManager $manager
+	 * @param array|null $data
+	 * @param string|null $pid ID of the exsting process to continue
 	 * @return string ProcessID
 	 */
-	public function start( ProcessManager $manager ) {
+	public function start( ProcessManager $manager, $data = [], $pid = null ) {
 		$phpBinaryFinder = new ExecutableFinder();
 		$phpBinaryPath = $phpBinaryFinder->find( 'php' );
 		$scriptPath = dirname( __DIR__ ) . '/maintenance/processExecution.php';
 		$maintenancePath = $GLOBALS['IP'] . '/maintenance/Maintenance.php';
 		$autoloaderPath = dirname( dirname( dirname( __DIR__ ) ) ) . '/autoload.php';
 
-		$pid = md5( rand( 1, 9999999 ) + ( new \DateTime() )->getTimestamp() );
+		$pid = $pid ?? md5( rand( 1, 9999999 ) + ( new \DateTime() )->getTimestamp() );
 		$this->parentProcess = new AsyncProcess( [
 			$phpBinaryPath, $scriptPath, $maintenancePath, $autoloaderPath, $pid
 		] );
 		$input = new InputStream();
-		$input->write( json_encode( $this->steps ) );
+		$input->write( json_encode( [ 'steps' => $this->steps, 'data' => $data ] ) );
 		$this->parentProcess->setInput( $input );
 		$this->parentProcess->setTimeout( $this->timeout );
-		$manager->recordStart( $pid, $this->timeout );
+		$manager->recordStart( $pid, $this->steps, $this->timeout, $pid );
 		// $this->parentProcess->disableOutput();
 		$this->parentProcess->start();
 

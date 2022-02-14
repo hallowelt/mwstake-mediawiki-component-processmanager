@@ -74,6 +74,16 @@ echo $processManager->getProcessInfo( $pid );
 
 In case of an error, response will contain status `error`, and show Exception message and callstack.
 
+## Interrupting processes
+Sometimes, we want to pause between steps, and re-evaluate data returned.
+
+This can be achieved if step implements `MWStake\MediaWiki\Component\ProcessManager\InterruptingProcessStep` instead of `MWStake\MediaWiki\Component\ProcessManager\IProcessStep`.
+In case process comes across an instance of this interface, it will pause the processing and report back data that was returned from the step.
+
+To continue the process, you must call `$processManager->proceed( $pid, $data )`. In this case, `$pid` is the ID of the paused process, 
+and `$data` is any modified data to be passed to the next step. This data will be merged with data returned from previous step (the one that paused the process).
+This call will return the PID of the process, which should be the same as the one passed (same process continues).
+
 ## Notes
 
 - This lib requires an DB table, so `update.php` will be necessary

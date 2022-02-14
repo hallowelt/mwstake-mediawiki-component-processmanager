@@ -22,6 +22,8 @@ class ProcessInfo implements JsonSerializable {
 	private $timeout;
 	/** @var array */
 	private $data;
+	/** @var array */
+	private $steps;
 
 	/**
 	 * @param stdClass $row
@@ -35,7 +37,8 @@ class ProcessInfo implements JsonSerializable {
 			$row->p_timeout !== null ? (float)$row->p_timeout : null,
 			$row->p_exitcode !== null ? (int)$row->p_exitcode : null,
 			$row->p_exitstatus,
-			$row->p_output !== null ? json_decode( $row->p_output, 1 ) : []
+			$row->p_output !== null ? json_decode( $row->p_output, 1 ) : [],
+			$row->p_steps !== null ? json_decode( $row->p_steps, 1 ) : [],
 		);
 	}
 
@@ -47,9 +50,11 @@ class ProcessInfo implements JsonSerializable {
 	 * @param int|null $exitCode
 	 * @param string|null $exitStatus
 	 * @param array|null $data
+	 * @param array|null $steps
 	 */
 	public function __construct(
-		$pid, $state, DateTime $started, $timeout, $exitCode = null, $exitStatus = null, $data = []
+		$pid, $state, DateTime $started, $timeout, $exitCode = null,
+		$exitStatus = null, $data = [], $steps = []
 	) {
 		$this->pid = $pid;
 		$this->state = $state;
@@ -58,6 +63,7 @@ class ProcessInfo implements JsonSerializable {
 		$this->exitStatus = $exitStatus;
 		$this->timeout = $timeout;
 		$this->data = $data;
+		$this->steps = $steps;
 	}
 
 	/**
@@ -112,6 +118,13 @@ class ProcessInfo implements JsonSerializable {
 	/**
 	 * @return array
 	 */
+	public function getSteps(): array {
+		return $this->steps;
+	}
+
+	/**
+	 * @return array
+	 */
 	public function jsonSerialize() {
 		return [
 			'pid' => $this->pid,
@@ -119,7 +132,8 @@ class ProcessInfo implements JsonSerializable {
 			'started' => $this->started->format( 'YmdHis' ),
 			'exitCode' => $this->exitCode,
 			'exitStatus' => $this->exitStatus,
-			'output' => $this->data
+			'output' => $this->data,
+			'steps' => $this->steps
 		];
 	}
 

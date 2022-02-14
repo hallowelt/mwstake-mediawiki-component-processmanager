@@ -8,6 +8,8 @@ use Symfony\Component\Process\Process;
 use Wikimedia\Rdbms\ILoadBalancer;
 
 class ProcessManager {
+
+	/** @var ILoadBalancer */
 	private ILoadBalancer $loadBalancer;
 	/** @var int Number of minutes after which to delete processes */
 	private $garbageInterval = 600;
@@ -42,10 +44,11 @@ class ProcessManager {
 
 	/**
 	 * @param ManagedProcess $process
+	 * @param array|null $data
 	 * @return string
 	 */
-	public function startProcess( ManagedProcess $process ): string {
-		return $process->start( $this );
+	public function startProcess( ManagedProcess $process, $data = [] ): string {
+		return $process->start( $this, $data );
 	}
 
 	/**
@@ -64,7 +67,8 @@ class ProcessManager {
 				'p_exitstatus',
 				'p_started',
 				'p_timeout',
-				'p_output'
+				'p_output',
+				'p_steps'
 			],
 			[
 				'p_pid' => $pid
@@ -105,26 +109,95 @@ class ProcessManager {
 	}
 
 	/**
+	 * @param string $pid
+	 * @param string $lastStep
+	 * @param array $data
+	 * @return bool
+	 */
+	public function recordInterrupt( $pid, $lastStep, $data ) {
+		return $this->updateInfo( $pid, [
+			'p_state' => InterruptingProcessStep::STATUS_INTERRUPTED,
+			'p_output' => json_encode( [
+				'lastStep' => $lastStep,
+				'data' => $data,
+			] )
+		] );
+	}
+
+	/**
+	 * @param string $pid
+	 * @param array|null $data
+	 * @return string
+	 * @throws \Exception
+	 */
+	public function proceed( $pid, $data = [] ) {
+		$info = $this->getProcessInfo( $pid );
+		if ( !$info ) {
+			throw new \Exception( 'Process with PID ' . $pid . ' does not exist' );
+		}
+		if ( $info->getState() !== InterruptingProcessStep::STATUS_INTERRUPTED ) {
+			throw new \Exception( 'Process was not previously interrupted' );
+		}
+		$steps = $info->getSteps();
+		$lastData = $info->getOutput();
+		$lastStep = $lastData['lastStep'] ?? null;
+		$lastData = $lastData['data'] ?? [];
+		if ( !$lastStep ) {
+			throw new \Exception( 'No last step information available' );
+		}
+		$remainingSteps = [];
+		$found = false;
+		foreach ( $steps as $name => $spec ) {
+			if ( $name === $lastStep ) {
+				$found = true;
+				continue;
+			}
+			if ( $found ) {
+				$remainingSteps[$name] = $spec;
+			}
+		}
+
+		if ( empty( $remainingSteps ) ) {
+			$this->recordFinish( $pid, 0, 'No steps left after proceeding', $lastData );
+			return $pid;
+		}
+
+		$newProcess = new ManagedProcess( $remainingSteps, $info->getTimeout() );
+		return $newProcess->start( $this, array_merge( $lastData, $data ), $pid );
+	}
+
+	/**
 	 * Record starting of the process
 	 *
 	 * @param string $pid
+	 * @param array $steps
 	 * @param int $timeout
 	 * @return bool
 	 */
-	public function recordStart( $pid, $timeout ): bool {
+	public function recordStart( $pid, $steps, $timeout ): bool {
 		$db = $this->loadBalancer->getConnection( DB_PRIMARY );
-		$res = $db->insert(
+		$info = $this->getProcessInfo( $pid );
+		if (
+			$info instanceof ProcessInfo &&
+			$info->getState() === InterruptingProcessStep::STATUS_INTERRUPTED
+		) {
+			// Continue interrupted process
+			return $this->updateInfo( $pid, [
+				'p_state' => Process::STATUS_STARTED,
+			] );
+		}
+
+		return $db->insert(
 			'processes',
 			[
 				'p_pid' => $pid,
 				'p_state' => Process::STATUS_STARTED,
 				'p_timeout' => $timeout,
-				'p_started' => $db->timestamp( ( new DateTime() )->format( 'YmdHis' ) )
+				'p_started' => $db->timestamp( ( new DateTime() )->format( 'YmdHis' ) ),
+				'p_steps' => json_encode( $steps )
 			],
 			__METHOD__
 		);
-
-		return $res;
 	}
 
 	/**
