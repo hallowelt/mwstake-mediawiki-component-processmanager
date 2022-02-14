@@ -10,14 +10,15 @@ as an input for the next, until the end. Last step will return its output as the
 
 Steps are defined as `ObjectFactory` specs. Object produced from such specs must be instance of `MWStake\MediaWiki\Component\ProcessManager\IProcessStep`.
 
-## Sample step 
+## Sample step
 ```php
 class Foo implements IProcessStep {
 
+	/** @var ILoadBalancer */
 	private $lb;
 	/** @var string */
 	private $name;
-	
+
 	public function __construct( ILoadBalancer $lb, $name ) {
 		$this->lb = $lb;
 		$this->name = $name;
@@ -45,8 +46,9 @@ $process = new ManagedProcess( [
 		'services' => [ 'DBLoadBalancer' ]
 	]
 ], 300 );
-	
+
 $processManager = MediaWikiServices::getInstance()->getService( 'ProcessManager' );
+
 // ProcessManager::startProcess() returns unique process ID that is required
 // later on to check on the process state
 echo $processManager->startProcess( $process );
