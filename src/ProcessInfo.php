@@ -3,9 +3,10 @@
 namespace MWStake\MediaWiki\Component\ProcessManager;
 
 use DateTime;
+use JsonSerializable;
 use stdClass;
 
-class ProcessInfo implements \JsonSerializable {
+class ProcessInfo implements JsonSerializable {
 
 	/** @var string */
 	private $pid;

@@ -7,6 +7,7 @@ use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
 class ManagedProcess {
+
 	/** @var Process|null */
 	private $parentProcess = null;
 	/** @var array */

@@ -2,6 +2,7 @@
 
 namespace MWStake\MediaWiki\Component\ProcessManager;
 
+use DateInterval;
 use DateTime;
 use Symfony\Component\Process\Process;
 use Wikimedia\Rdbms\ILoadBalancer;
@@ -147,7 +148,7 @@ class ProcessManager {
 	 */
 	private function isTimeoutReached( ProcessInfo $info ): bool {
 		$start = $info->getStartDate();
-		$maxTime = $start->add( new \DateInterval( "PT{$info->getTimeout()}S" ) );
+		$maxTime = $start->add( new DateInterval( "PT{$info->getTimeout()}S" ) );
 
 		return new DateTime() > $maxTime;
 	}
@@ -157,7 +158,7 @@ class ProcessManager {
 	 */
 	private function garbageCollect() {
 		$db = $this->loadBalancer->getConnection( DB_PRIMARY );
-		$hourAgo = ( new DateTime() )->sub( new \DateInterval( "PT{$this->garbageInterval}M" ) );
+		$hourAgo = ( new DateTime() )->sub( new DateInterval( "PT{$this->garbageInterval}M" ) );
 		$db->delete(
 			'processes',
 			[
