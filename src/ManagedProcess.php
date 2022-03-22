@@ -37,6 +37,13 @@ class ManagedProcess {
 		$autoloaderPath = dirname( dirname( dirname( __DIR__ ) ) ) . '/autoload.php';
 
 		$pid = $pid ?? md5( rand( 1, 9999999 ) + ( new \DateTime() )->getTimestamp() );
+		if ( !file_exists( $maintenancePath ) || !file_exists( $autoloaderPath ) ) {
+			$manager->recordStart( $pid, $this->steps, $this->timeout, $pid );
+			$manager->recordFinish(
+				$pid, 1, "One of the paths does not exist: $maintenancePath, $autoloaderPath"
+			);
+			return $pid;
+		}
 		$this->parentProcess = new AsyncProcess( [
 			$phpBinaryPath, $scriptPath, $maintenancePath, $autoloaderPath, $pid
 		] );
