@@ -30,15 +30,21 @@ class ManagedProcess {
 	 * @return string ProcessID
 	 */
 	public function start( ProcessManager $manager, $data = [], $pid = null ) {
-		$phpBinaryFinder = new ExecutableFinder();
-		$phpBinaryPath = $phpBinaryFinder->find( 'php' );
 		$scriptPath = dirname( __DIR__ ) . '/maintenance/processExecution.php';
 		$maintenancePath = $GLOBALS['IP'] . '/maintenance/Maintenance.php';
 		$autoloaderPath = dirname( dirname( dirname( __DIR__ ) ) ) . '/autoload.php';
 
 		$pid = $pid ?? md5( rand( 1, 9999999 ) + ( new \DateTime() )->getTimestamp() );
+		$manager->recordStart( $pid, $this->steps, $this->timeout, $pid );
+		$phpBinaryFinder = new ExecutableFinder();
+		$phpBinaryPath = $phpBinaryFinder->find( 'php' );
+		if ( !$phpBinaryPath ) {
+			$manager->recordFinish(
+				$pid, 1, "PHP executable cannot be found"
+			);
+			return $pid;
+		}
 		if ( !file_exists( $maintenancePath ) || !file_exists( $autoloaderPath ) ) {
-			$manager->recordStart( $pid, $this->steps, $this->timeout, $pid );
 			$manager->recordFinish(
 				$pid, 1, "One of the paths does not exist: $maintenancePath, $autoloaderPath"
 			);
