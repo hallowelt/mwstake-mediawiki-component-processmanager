@@ -14,9 +14,9 @@ class ProcessExecution extends Maintenance {
 		$pid = $argv[3];
 
 		$manager = new \MWStake\MediaWiki\Component\ProcessManager\ProcessManager(
-			\MediaWiki\MediaWikiServices::getInstance()->getDBLoadBalancerFactory()->newMainLB()
+			\MediaWiki\MediaWikiServices::getInstance()->getDBLoadBalancer()
+			
 		);
-
 		$data = [];
 		try {
 			$input = $this->getStdin();
@@ -31,7 +31,6 @@ class ProcessExecution extends Maintenance {
 			}
 			$this->steps = $decoded['steps'];
 			$this->initData = $decoded['data'] ?? [];
-
 			$data = $this->executeSteps();
 			if ( isset( $data['interrupt' ] ) ) {
 				$manager->recordInterrupt( $pid, $data['interrupt'], $data['data'] );
@@ -72,7 +71,6 @@ class ProcessExecution extends Maintenance {
 					$ex
 				);
 			}
-
 		}
 		return $data;
 	}

@@ -47,8 +47,8 @@ class ProcessManager {
 	 * @param array|null $data
 	 * @return string
 	 */
-	public function startProcess( ManagedProcess $process, $data = [] ): string {
-		return $process->start( $this, $data );
+	public function startProcess( ManagedProcess $process, $data = [], $sync = false ): string {
+		return $process->start( $this, $data, null, $sync );
 	}
 
 	/**
