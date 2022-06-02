@@ -1,7 +1,6 @@
 <?php
 
 require_once $argv[1];
-require_once $argv[2];
 
 class ProcessExecution extends Maintenance {
 	/** @var array */
@@ -11,7 +10,7 @@ class ProcessExecution extends Maintenance {
 
 	public function execute() {
 		global $argv;
-		$pid = $argv[3];
+		$pid = $argv[2];
 
 		$manager = new \MWStake\MediaWiki\Component\ProcessManager\ProcessManager(
 			\MediaWiki\MediaWikiServices::getInstance()->getDBLoadBalancer()

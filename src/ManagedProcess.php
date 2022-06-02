@@ -33,7 +33,6 @@ class ManagedProcess {
 	public function start( ProcessManager $manager, $data = [], $pid = null, $sync ) {
 		$scriptPath = dirname( __DIR__ ) . '/maintenance/processExecution.php';
 		$maintenancePath = $GLOBALS['IP'] . '/maintenance/Maintenance.php';
-		$autoloaderPath = dirname( dirname( dirname( __DIR__ ) ) ) . '/autoload.php';
 
 		$pid = $pid ?? md5( rand( 1, 9999999 ) + ( new \DateTime() )->getTimestamp() );
 		$manager->recordStart( $pid, $this->steps, $this->timeout );
@@ -45,15 +44,15 @@ class ManagedProcess {
 			);
 			return $pid;
 		}
-		if ( !file_exists( $maintenancePath ) || !file_exists( $autoloaderPath ) ) {
+		if ( !file_exists( $maintenancePath ) ) {
 			$manager->recordFinish(
-				$pid, 1, "One of the paths does not exist: $maintenancePath, $autoloaderPath"
+				$pid, 1, "Paths does not exist: $maintenancePath"
 			);
 			return $pid;
 		}
 
 		$this->parentProcess = new Process( [
-			$phpBinaryPath, $scriptPath, $maintenancePath, $autoloaderPath, $pid
+			$phpBinaryPath, $scriptPath, $maintenancePath, $pid
 		] );
 		$input = new InputStream();
 		$input->write( json_encode( [ 'steps' => $this->steps, 'data' => $data ] ) );
