@@ -11,5 +11,5 @@ class AsyncProcess extends Process {
 	 */
 	public function __destruct() {
 		// Do not send SIGTERM once the calling code finishes
- 	}
+	}
 }

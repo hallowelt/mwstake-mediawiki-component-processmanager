@@ -14,7 +14,6 @@ class ProcessExecution extends Maintenance {
 
 		$manager = new \MWStake\MediaWiki\Component\ProcessManager\ProcessManager(
 			\MediaWiki\MediaWikiServices::getInstance()->getDBLoadBalancer()
-			
 		);
 		$data = [];
 		try {

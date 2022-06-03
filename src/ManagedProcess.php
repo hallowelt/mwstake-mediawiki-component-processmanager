@@ -28,6 +28,7 @@ class ManagedProcess {
 	 * @param ProcessManager $manager
 	 * @param array|null $data
 	 * @param string|null $pid ID of the exsting process to continue
+	 * @param bool $sync
 	 * @return string ProcessID
 	 */
 	public function start( ProcessManager $manager, $data = [], $pid = null, $sync ) {
