@@ -28,31 +28,23 @@ class ManagedProcess {
 	 * @param ProcessManager $manager
 	 * @param array|null $data
 	 * @param string|null $pid ID of the exsting process to continue
-	 * @param bool $sync
 	 * @return string ProcessID
 	 */
-	public function start( ProcessManager $manager, $data = [], $pid = null, $sync ) {
+	public function start( ProcessManager $manager, $data = [], $pid = null ) {
 		$scriptPath = dirname( __DIR__ ) . '/maintenance/processExecution.php';
 		$maintenancePath = $GLOBALS['IP'] . '/maintenance/Maintenance.php';
 
 		$pid = $pid ?? md5( rand( 1, 9999999 ) + ( new \DateTime() )->getTimestamp() );
 		$manager->recordStart( $pid, $this->steps, $this->timeout );
-		$phpBinaryFinder = new ExecutableFinder();
-		$phpBinaryPath = $phpBinaryFinder->find( 'php' );
-		if ( !$phpBinaryPath ) {
-			$manager->recordFinish(
-				$pid, 1, "PHP executable cannot be found"
-			);
-			return $pid;
-		}
+		$phpBinaryPath = $GLOBALS['wgPhpCli'];
 		if ( !file_exists( $maintenancePath ) ) {
 			$manager->recordFinish(
-				$pid, 1, "Paths does not exist: $maintenancePath"
+				$pid, 1, "Path does not exist: $maintenancePath"
 			);
 			return $pid;
 		}
 
-		$this->parentProcess = new Process( [
+		$this->parentProcess = new AsyncProcess( [
 			$phpBinaryPath, $scriptPath, $maintenancePath, $pid
 		] );
 		$input = new InputStream();
@@ -60,31 +52,8 @@ class ManagedProcess {
 		$this->parentProcess->setInput( $input );
 		$this->parentProcess->setTimeout( $this->timeout );
 
-		if ( $sync ) {
-			$err = '';
-			try {
-				$this->parentProcess->start( static function ( $type, $buffer ) use ( &$err ) {
-					error_log( $buffer );
-					if ( $type === Process::ERR ) {
-						$err .= $buffer;
-					}
-				} );
-				$input->close();
-				$this->parentProcess->wait();
-				if ( $manager->getProcessStatus( $pid ) !== Process::STATUS_STARTED ) {
-					return $pid;
-				} else {
-					$manager->recordFinish(
-						$pid, $this->parentProcess->getExitCode(), $this->parentProcess->getExitCodeText(), $err
-					);
-				}
-			} catch ( ProcessTimedOutException $ex ) {
-				$manager->recordFinish( $pid, 152, 'timeout', [ 'stderr' => $err ] );
-			}
-		} else {
-			$this->parentProcess->start();
-			$input->close();
-		}
+		$this->parentProcess->start();
+		$input->close();
 
 		return $pid;
 	}
