@@ -90,6 +90,10 @@ In this case `\MWStake\MediaWiki\Component\ProcessManager\CodeExecutor` may be h
 
 Sample usage:
 ```php
+$data = [
+    'some arbitrary data'
+];
+
 $executor = new CodeExecutor( [
     'foo-step' => [
         'class' => Foo::class,
@@ -101,13 +105,13 @@ $executor = new CodeExecutor( [
     'bar-step' => [
         'class' => Bar::class,
         'args' => [
-            $dataFromFooStep1,
-            $dataFromFooStep2,
-            $dataFromFooStep3
+            $someArg1,
+            $someArg3,
+            $someArg4
         ]
     ]
 ] );
-$executor->executeSteps();
+$executor->executeSteps( $data );
 ```
 
 ## Notes
