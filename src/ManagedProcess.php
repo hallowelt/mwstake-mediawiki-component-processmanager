@@ -2,8 +2,6 @@
 
 namespace  MWStake\MediaWiki\Component\ProcessManager;
 
-use Symfony\Component\Process\Exception\ProcessTimedOutException;
-use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
