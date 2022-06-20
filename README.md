@@ -84,6 +84,36 @@ To continue the process, you must call `$processManager->proceed( $pid, $data )`
 and `$data` is any modified data to be passed to the next step. This data will be merged with data returned from previous step (the one that paused the process).
 This call will return the PID of the process, which should be the same as the one passed (same process continues).
 
+## Executing synchronous code in steps
+There also may be a case when we want to execute code synchronously, but in several steps, passing data from one step to other.
+In this case `\MWStake\MediaWiki\Component\ProcessManager\CodeExecutor` may be helpful.
+
+Sample usage:
+```php
+$data = [
+    'some arbitrary data'
+];
+
+$executor = new CodeExecutor( [
+    'foo-step' => [
+        'class' => Foo::class,
+        'args' => [
+            $someArg1,
+            $someArg2
+        ]
+    ],
+    'bar-step' => [
+        'class' => Bar::class,
+        'args' => [
+            $someArg1,
+            $someArg3,
+            $someArg4
+        ]
+    ]
+] );
+$executor->executeSteps( $data );
+```
+
 ## Notes
 
 - This lib requires an DB table, so `update.php` will be necessary
