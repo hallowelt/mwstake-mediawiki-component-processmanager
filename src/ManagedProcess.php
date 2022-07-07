@@ -35,6 +35,13 @@ class ManagedProcess {
 		$pid = $pid ?? md5( rand( 1, 9999999 ) + ( new \DateTime() )->getTimestamp() );
 		$manager->recordStart( $pid, $this->steps, $this->timeout );
 		$phpBinaryPath = $GLOBALS['wgPhpCli'];
+		if ( !file_exists( $phpBinaryPath ) ) {
+			$manager->recordFinish(
+				$pid, 1, "PHP executable cannot be found"
+			);
+			return $pid;
+		}
+
 		if ( !file_exists( $maintenancePath ) ) {
 			$manager->recordFinish(
 				$pid, 1, "Path does not exist: $maintenancePath"
