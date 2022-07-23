@@ -2,6 +2,8 @@
 
 namespace MWStake\MediaWiki\Component\ProcessManager;
 
+use Exception;
+
 class CodeExecutor {
 
 	/** @var array */

@@ -2,6 +2,7 @@
 
 namespace  MWStake\MediaWiki\Component\ProcessManager;
 
+use Exception;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
@@ -36,17 +37,23 @@ class ManagedProcess {
 		$manager->recordStart( $pid, $this->steps, $this->timeout );
 		$phpBinaryPath = $GLOBALS['wgPhpCli'];
 		if ( !file_exists( $phpBinaryPath ) ) {
+			$err = "PHP executable cannot be found. Please check if \$wgPhpCli global is correctly set";
+
 			$manager->recordFinish(
-				$pid, 1, "PHP executable cannot be found"
+				$pid, 1, $err
 			);
-			return $pid;
+
+			throw new Exception( $err );
 		}
 
 		if ( !file_exists( $maintenancePath ) ) {
+			$err = "Maintenance path does not exist: $maintenancePath";
+
 			$manager->recordFinish(
-				$pid, 1, "Path does not exist: $maintenancePath"
+				$pid, 1, $err
 			);
-			return $pid;
+
+			throw new Exception( $err );
 		}
 
 		$this->parentProcess = new AsyncProcess( [
