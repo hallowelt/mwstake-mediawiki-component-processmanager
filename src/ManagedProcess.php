@@ -26,7 +26,7 @@ class ManagedProcess {
 	 * @param ProcessManager $manager
 	 * @param array|null $data
 	 * @param string|null $pid ID of the exsting process to continue
-	 * @param array $addInfo=[] Additional information can be passed inside the array or [] if none
+	 * @param array $addInfo Additional information can be passed inside the array or [] if none
 	 * @return string ProcessID
 	 */
 	public function start( ProcessManager $manager, $data = [], $pid = null, $addInfo = [] ) {

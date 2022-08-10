@@ -13,6 +13,7 @@ class ProcessManager {
 	private ILoadBalancer $loadBalancer;
 	/** @var int Number of minutes after which to delete processes */
 	private $garbageInterval = 600;
+	/** @var array Any additional information passed down from the calling instance */
 	private $addInfo;
 
 	/**
@@ -50,7 +51,7 @@ class ProcessManager {
 	 * @return string
 	 */
 	public function startProcess( ManagedProcess $process, $data = [] ): string {
-		return $process->start( $this, $data, $addInfo = $this->addInfo );
+		return $process->start( $this, $data, null, $this->addInfo );
 	}
 
 	/**
