@@ -18,6 +18,7 @@ class ProcessManager {
 
 	/**
 	 * @param ILoadBalancer $loadBalancer
+	 * @param array $addInfo
 	 */
 	public function __construct( ILoadBalancer $loadBalancer, array $addInfo ) {
 		$this->loadBalancer = $loadBalancer;
