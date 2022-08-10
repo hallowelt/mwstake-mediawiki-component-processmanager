@@ -26,9 +26,10 @@ class ManagedProcess {
 	 * @param ProcessManager $manager
 	 * @param array|null $data
 	 * @param string|null $pid ID of the exsting process to continue
+	 * @param array $addInfo=[] Additional information can be passed inside the array or [] if none
 	 * @return string ProcessID
 	 */
-	public function start( ProcessManager $manager, $data = [], $pid = null ) {
+	public function start( ProcessManager $manager, $data = [], $pid = null, $addInfo = [] ) {
 		$scriptPath = dirname( __DIR__ ) . '/maintenance/processExecution.php';
 		$maintenancePath = $GLOBALS['IP'] . '/maintenance/Maintenance.php';
 
@@ -50,7 +51,7 @@ class ManagedProcess {
 		}
 
 		$this->parentProcess = new AsyncProcess( [
-			$phpBinaryPath, $scriptPath, $maintenancePath, $pid
+			$phpBinaryPath, $scriptPath, $maintenancePath, $pid, $addInfo
 		] );
 		$input = new InputStream();
 		$input->write( json_encode( [ 'steps' => $this->steps, 'data' => $data ] ) );
