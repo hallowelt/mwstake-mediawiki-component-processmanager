@@ -8,7 +8,8 @@ define( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION', '1.2.0' );
 
 \MWStake\MediaWiki\ComponentLoader\Bootstrapper::getInstance()
 	->register( 'processmanager', function () {
-		$GLOBALS['mwscProcessManagerAdditonalExecutionCLIScriptArgs'][] = [];
+		$GLOBALS['mwscProcessManagerAdditonalExecutionCLIScriptArgs'] =
+			$GLOBALS['mwscProcessManagerAdditonalExecutionCLIScriptArgs'] ?? [];
 		$GLOBALS['wgServiceWiringFiles'][] = __DIR__ . '/includes/ServiceWiring.php';
 		$GLOBALS['wgHooks']['LoadExtensionSchemaUpdates'][] = function ( DatabaseUpdater $updater ) {
 			$updater->addExtensionTable( 'processes', __DIR__ . '/db/processes.sql' );

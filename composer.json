@@ -43,10 +43,5 @@
 			"minus-x fix .",
 			"phpcbf"
 		]
-	},
-	"config": {
-		"allow-plugins": {
-			"composer/installers": true
-		}
 	}
 }
