@@ -4,10 +4,15 @@ namespace MWStake\MediaWiki\Component\ProcessManager;
 
 use DateInterval;
 use DateTime;
+use MediaWiki\Logger\LoggerFactory;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\Process;
 use Wikimedia\Rdbms\ILoadBalancer;
 
 class ProcessManager {
+
+	/** @var LoggerInterface */
+	private $logger;
 
 	/** @var ILoadBalancer */
 	private ILoadBalancer $loadBalancer;
@@ -19,6 +24,7 @@ class ProcessManager {
 	 */
 	public function __construct( ILoadBalancer $loadBalancer ) {
 		$this->loadBalancer = $loadBalancer;
+		$this->logger = LoggerFactory::getInstance( 'processmanager-process-manager' );
 	}
 
 	/**
@@ -48,7 +54,7 @@ class ProcessManager {
 	 * @return string
 	 */
 	public function startProcess( ManagedProcess $process, $data = [] ): string {
-		return $process->start( $this, $data, null, $sync );
+		return $process->start( $this, $data, null );
 	}
 
 	/**
@@ -57,6 +63,12 @@ class ProcessManager {
 	 */
 	private function loadProcess( $pid ): ?ProcessInfo {
 		$this->garbageCollect();
+
+		$this->logger->info(
+			"Loading process {pid}", [
+				'key' => $pid,
+			]
+		);
 
 		$row = $this->loadBalancer->getConnection( DB_REPLICA )->selectRow(
 			'processes',
@@ -82,10 +94,23 @@ class ProcessManager {
 		$info = ProcessInfo::newFromRow( $row );
 		if ( $info->getState() === Process::STATUS_STARTED && $this->isTimeoutReached( $info ) ) {
 			if ( $this->recordFinish( $info->getPid(), 152, 'Execution time too long' ) ) {
+				$this->logger->warning(
+					"Process {pid} with status {status} took too long to execute", [
+						'key' => $info->getPid(),
+						'status' => $this->getProcessStatus( $info->getPid() )
+					]
+				);
 				return $this->loadProcess( $info->getPid() );
 			}
 
 		}
+
+		$this->logger->info(
+			"Process {pid} loaded and current status is {status}", [
+				'key' => $pid,
+				'status' => $info->getState(),
+			]
+		);
 
 		return $info;
 	}
@@ -207,12 +232,21 @@ class ProcessManager {
 	 */
 	private function updateInfo( $pid, array $data ) {
 		$db = $this->loadBalancer->getConnection( DB_PRIMARY );
-		return $db->update(
+		$success = $db->update(
 			'processes',
 			$data,
 			[ 'p_pid' => $pid ],
 			__METHOD__
 		);
+
+		$this->logger->info(
+			"Process {pid} update info status: {status}", [
+				'key' => $pid,
+				'status' => $success,
+			]
+		);
+
+		return $success;
 	}
 
 	/**
@@ -232,6 +266,9 @@ class ProcessManager {
 	private function garbageCollect() {
 		$db = $this->loadBalancer->getConnection( DB_PRIMARY );
 		$hourAgo = ( new DateTime() )->sub( new DateInterval( "PT{$this->garbageInterval}M" ) );
+
+		$this->logger->info( "Running process garbage collection at " . date( 'Y-m-d H:i:s' ) );
+
 		$db->delete(
 			'processes',
 			[

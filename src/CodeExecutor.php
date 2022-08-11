@@ -2,7 +2,16 @@
 
 namespace MWStake\MediaWiki\Component\ProcessManager;
 
+use Exception;
+use MediaWiki\Logger\LoggerFactory;
+use Psr\Log\LoggerInterface;
+
+
+
 class CodeExecutor {
+
+	/** @var LoggerInterface */
+	private $logger;
 
 	/** @var array */
 	private $steps;
@@ -12,6 +21,7 @@ class CodeExecutor {
 	 */
 	public function __construct( array $steps ) {
 		$this->steps = $steps;
+		$this->logger = LoggerFactory::getInstance( 'processmanager-code-executer' );
 	}
 
 	/**
@@ -19,6 +29,7 @@ class CodeExecutor {
 	 * @return array
 	 */
 	public function executeSteps( array $data = [] ) {
+		$this->logger->info( "Start processing at " . date( 'Y-m-d H:i:s' ) );
 		$of = \MediaWiki\MediaWikiServices::getInstance()->getObjectFactory();
 		foreach ( $this->steps as $name => $spec ) {
 			try {
@@ -45,6 +56,7 @@ class CodeExecutor {
 				);
 			}
 		}
+		$this->logger->info( "End processing at " . date( 'Y-m-d H:i:s' ) );
 		return $data;
 	}
 
