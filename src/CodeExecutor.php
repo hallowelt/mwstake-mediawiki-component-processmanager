@@ -6,8 +6,6 @@ use Exception;
 use MediaWiki\Logger\LoggerFactory;
 use Psr\Log\LoggerInterface;
 
-
-
 class CodeExecutor {
 
 	/** @var LoggerInterface */

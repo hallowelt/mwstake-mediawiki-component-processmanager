@@ -12,13 +12,13 @@ class ManagedProcess {
 
 	/** @var LoggerInterface */
 	private $logger;
-	
+
 	/** @var Process|null */
 	private $parentProcess = null;
 
 	/** @var array */
 	private $steps;
-	
+
 	/** @var int */
 	private $timeout;
 
@@ -61,7 +61,6 @@ class ManagedProcess {
 				$pid, 1, $err
 			);
 
-
 			throw new Exception( $err );
 		}
 
@@ -96,7 +95,7 @@ class ManagedProcess {
 		$this->logger->info(
 			"Started process with pid: '{key}' and status: {status} at " . date( 'Y-m-d H:i:s' ), [
 				'key' => $pid,
-				'status' => $manager->getProcessStatus($pid),
+				'status' => $manager->getProcessStatus( $pid ),
 			]
 		);
 
