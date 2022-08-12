@@ -23,4 +23,3 @@ jobs:
 
       - name: Run check coding conventions
         run: composer test
-
