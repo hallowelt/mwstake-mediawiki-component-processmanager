@@ -7,6 +7,7 @@ jobs:
       name: "PHPUnit: MW ${{ matrix.mw }}, PHP ${{ matrix.php }}"
       strategy:
         matrix:
+          # multiple wikimedia versions can be put here along with php versions to test with
           include:
             - mw: 'REL1_35'
               php: 7.4
