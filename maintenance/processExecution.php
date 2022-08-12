@@ -1,5 +1,7 @@
 <?php
 
+use MediaWiki\MediaWikiServices;
+
 require_once $argv[1];
 
 class ProcessExecution extends Maintenance {
@@ -12,9 +14,7 @@ class ProcessExecution extends Maintenance {
 		global $argv;
 		$pid = $argv[2];
 
-		$manager = new \MWStake\MediaWiki\Component\ProcessManager\ProcessManager(
-			\MediaWiki\MediaWikiServices::getInstance()->getDBLoadBalancer()
-		);
+		$manager = MediaWikiServices::getInstance()->getService( 'ProcessManager' );
 		$data = [];
 		try {
 			$input = $this->getStdin();

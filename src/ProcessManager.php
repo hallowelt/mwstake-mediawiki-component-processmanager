@@ -18,12 +18,16 @@ class ProcessManager {
 	private ILoadBalancer $loadBalancer;
 	/** @var int Number of minutes after which to delete processes */
 	private $garbageInterval = 600;
+	/** @var array Any additional script arguments passed down from the calling instance */
+	private $extraArgs;
 
 	/**
 	 * @param ILoadBalancer $loadBalancer
+	 * @param array $extraArgs
 	 */
-	public function __construct( ILoadBalancer $loadBalancer ) {
+	public function __construct( ILoadBalancer $loadBalancer, array $extraArgs ) {
 		$this->loadBalancer = $loadBalancer;
+		$this->extraArgs = $extraArgs;
 		$this->logger = LoggerFactory::getInstance( 'processmanager-process-manager' );
 	}
 
@@ -54,7 +58,7 @@ class ProcessManager {
 	 * @return string
 	 */
 	public function startProcess( ManagedProcess $process, $data = [] ): string {
-		return $process->start( $this, $data, null );
+		return $process->start( $this, $data, null, $this->extraArgs );
 	}
 
 	/**
