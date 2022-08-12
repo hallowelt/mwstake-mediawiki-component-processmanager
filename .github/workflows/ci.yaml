@@ -19,7 +19,7 @@ jobs:
         # run the action to install MediaWiki, PHP, Composer
         # and run PHPUnit tests
         - name: Mediawiki PHPUnit
-          uses: Jonty16117/mediawiki-phpunit-action@v2
+          uses: Jonty16117/mediawiki-phpunit-action@mwstake-unit-test 
           with:
             php: ${{ matrix.php }}
             mwbranch: ${{ matrix.mw }}
