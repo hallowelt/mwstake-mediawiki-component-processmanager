@@ -2,14 +2,23 @@
 
 namespace  MWStake\MediaWiki\Component\ProcessManager;
 
+use Exception;
+use MediaWiki\Logger\LoggerFactory;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
 class ManagedProcess {
+
+	/** @var LoggerInterface */
+	private $logger;
+
 	/** @var Process|null */
 	private $parentProcess = null;
+
 	/** @var array */
 	private $steps;
+
 	/** @var int */
 	private $timeout;
 
@@ -20,6 +29,7 @@ class ManagedProcess {
 	public function __construct( array $steps, ?int $timeout = 60 ) {
 		$this->steps = $steps;
 		$this->timeout = $timeout;
+		$this->logger = LoggerFactory::getInstance( 'processmanager-managed-process' );
 	}
 
 	/**
@@ -29,6 +39,8 @@ class ManagedProcess {
 	 * @return string ProcessID
 	 */
 	public function start( ProcessManager $manager, $data = [], $pid = null ) {
+		$this->logger->info( "Starting new process at " . date( 'Y-m-d H:i:s' ) );
+
 		$scriptPath = dirname( __DIR__ ) . '/maintenance/processExecution.php';
 		$maintenancePath = $GLOBALS['IP'] . '/maintenance/Maintenance.php';
 
@@ -36,17 +48,37 @@ class ManagedProcess {
 		$manager->recordStart( $pid, $this->steps, $this->timeout );
 		$phpBinaryPath = $GLOBALS['wgPhpCli'];
 		if ( !file_exists( $phpBinaryPath ) ) {
-			$manager->recordFinish(
-				$pid, 1, "PHP executable cannot be found"
+			$err = "PHP executable cannot be found. Please check if \$wgPhpCli global is correctly set";
+
+			$this->logger->error(
+				"There was a error while starting process '{key}': {message}", [
+					'key' => $pid,
+					'message' => $err
+				]
 			);
-			return $pid;
+
+			$manager->recordFinish(
+				$pid, 1, $err
+			);
+
+			throw new Exception( $err );
 		}
 
 		if ( !file_exists( $maintenancePath ) ) {
-			$manager->recordFinish(
-				$pid, 1, "Path does not exist: $maintenancePath"
+			$err = "Maintenance path does not exist: $maintenancePath";
+
+			$this->logger->error(
+				"There was a error while starting process '{key}': {message}", [
+					'key' => $pid,
+					'message' => $err
+				]
 			);
-			return $pid;
+
+			$manager->recordFinish(
+				$pid, 1, $err
+			);
+
+			throw new Exception( $err );
 		}
 
 		$this->parentProcess = new AsyncProcess( [
@@ -59,6 +91,13 @@ class ManagedProcess {
 
 		$this->parentProcess->start();
 		$input->close();
+
+		$this->logger->info(
+			"Started process with pid: '{key}' and status: {status} at " . date( 'Y-m-d H:i:s' ), [
+				'key' => $pid,
+				'status' => $manager->getProcessStatus( $pid ),
+			]
+		);
 
 		return $pid;
 	}
