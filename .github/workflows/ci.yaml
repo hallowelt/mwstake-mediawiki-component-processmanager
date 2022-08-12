@@ -1,26 +1,25 @@
-name: basic-tests
+name: Unit tests
 
 on: push
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v2
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 7.4
-          tools: composer:2
-
-      - name: Setting composer config to allow installing plugins
-        run: composer config --global allow-plugins.composer/installers true
-
-      - name: Install dependencies
-        run: composer update
-
-      - name: Run check coding conventions
-        run: composer test
+      name: "PHPUnit: MW ${{ matrix.mw }}, PHP ${{ matrix.php }}"
+      strategy:
+        matrix:
+          include:
+            - mw: 'REL1_35'
+              php: 7.4
+      runs-on: ubuntu-latest
+      steps:
+        # check out the extension repository
+        - name: Checkout
+          uses: actions/checkout@v3
+        # run the action to install MediaWiki, PHP, Composer
+        # and run PHPUnit tests
+        - name: Mediawiki PHPUnit
+          uses: Jonty16117/mediawiki-phpunit-action@v2
+          with:
+            php: ${{ matrix.php }}
+            mwbranch: ${{ matrix.mw }}
 
