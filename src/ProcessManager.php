@@ -4,31 +4,20 @@ namespace MWStake\MediaWiki\Component\ProcessManager;
 
 use DateInterval;
 use DateTime;
-use MediaWiki\Logger\LoggerFactory;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\Process\Process;
 use Wikimedia\Rdbms\ILoadBalancer;
 
 class ProcessManager {
-
-	/** @var LoggerInterface */
-	private $logger;
-
 	/** @var ILoadBalancer */
-	private ILoadBalancer $loadBalancer;
+	private $loadBalancer;
 	/** @var int Number of minutes after which to delete processes */
 	private $garbageInterval = 600;
-	/** @var array Any additional script arguments passed down from the calling instance */
-	private $extraArgs;
 
 	/**
 	 * @param ILoadBalancer $loadBalancer
-	 * @param array $extraArgs
 	 */
-	public function __construct( ILoadBalancer $loadBalancer, array $extraArgs ) {
+	public function __construct( ILoadBalancer $loadBalancer ) {
 		$this->loadBalancer = $loadBalancer;
-		$this->extraArgs = $extraArgs;
-		$this->logger = LoggerFactory::getInstance( 'processmanager-process-manager' );
 	}
 
 	/**
@@ -58,7 +47,7 @@ class ProcessManager {
 	 * @return string
 	 */
 	public function startProcess( ManagedProcess $process, $data = [] ): string {
-		return $process->start( $this, $data, null, $this->extraArgs );
+		return $this->enqueueProcess( $process->getSteps(), $process->getTimeout(), $data );
 	}
 
 	/**
@@ -68,13 +57,8 @@ class ProcessManager {
 	private function loadProcess( $pid ): ?ProcessInfo {
 		$this->garbageCollect();
 
-		$this->logger->info(
-			"Loading process {pid}", [
-				'key' => $pid,
-			]
-		);
-
-		$row = $this->loadBalancer->getConnection( DB_REPLICA )->selectRow(
+		$db = $this->loadBalancer->getConnection( DB_REPLICA );
+		$row = $db->selectRow(
 			'processes',
 			[
 				'p_pid',
@@ -95,28 +79,7 @@ class ProcessManager {
 		if ( !$row ) {
 			return null;
 		}
-		$info = ProcessInfo::newFromRow( $row );
-		if ( $info->getState() === Process::STATUS_STARTED && $this->isTimeoutReached( $info ) ) {
-			if ( $this->recordFinish( $info->getPid(), 152, 'Execution time too long' ) ) {
-				$this->logger->warning(
-					"Process {pid} with status {status} took too long to execute", [
-						'key' => $info->getPid(),
-						'status' => $this->getProcessStatus( $info->getPid() )
-					]
-				);
-				return $this->loadProcess( $info->getPid() );
-			}
-
-		}
-
-		$this->logger->info(
-			"Process {pid} loaded and current status is {status}", [
-				'key' => $pid,
-				'status' => $info->getState(),
-			]
-		);
-
-		return $info;
+		return ProcessInfo::newFromRow( $row );
 	}
 
 	/**
@@ -154,12 +117,38 @@ class ProcessManager {
 	}
 
 	/**
-	 * @param string $pid
+	 * @param array $steps
+	 * @param int $timeout
 	 * @param array|null $data
+	 *
+	 * @return string|null if failed to enqueue
+	 */
+	private function enqueueProcess( array $steps, int $timeout, ?array $data = [] ): ?string {
+		$pid = md5( rand( 1, 9999999 ) + ( new \DateTime() )->getTimestamp() );
+
+		$db = $this->loadBalancer->getConnection( DB_PRIMARY );
+		$res = $db->insert(
+			'processes',
+			[
+				'p_pid' => $pid,
+				'p_state' => Process::STATUS_READY,
+				'p_timeout' => $timeout,
+				'p_started' => $db->timestamp( ( new DateTime() )->format( 'YmdHis' ) ),
+				'p_output' => json_encode( $data ),
+				'p_steps' => json_encode( $steps )
+			],
+			__METHOD__
+		);
+
+		return $res ? $pid : null;
+	}
+
+	/**
+	 * @param string $pid
 	 * @return string
 	 * @throws \Exception
 	 */
-	public function proceed( $pid, $data = [] ) {
+	public function proceed( $pid ): ?string {
 		$info = $this->getProcessInfo( $pid );
 		if ( !$info ) {
 			throw new \Exception( 'Process with PID ' . $pid . ' does not exist' );
@@ -191,42 +180,52 @@ class ProcessManager {
 			return $pid;
 		}
 
-		$newProcess = new ManagedProcess( $remainingSteps, $info->getTimeout() );
-		return $newProcess->start( $this, array_merge( $lastData, $data ), $pid );
+		$db = $this->loadBalancer->getConnection( DB_PRIMARY );
+		$res = $this->updateInfo( $pid, [
+			'p_state' => Process::STATUS_READY,
+			'p_output' => json_encode( $lastData ),
+			'p_steps' => json_encode( $remainingSteps )
+		] );
+
+		return $res ? $pid : null;
 	}
 
 	/**
 	 * Record starting of the process
 	 *
 	 * @param string $pid
-	 * @param array $steps
-	 * @param int $timeout
 	 * @return bool
 	 */
-	public function recordStart( $pid, $steps, $timeout ): bool {
-		$db = $this->loadBalancer->getConnection( DB_PRIMARY );
-		$info = $this->getProcessInfo( $pid );
-		if (
-			$info instanceof ProcessInfo &&
-			$info->getState() === InterruptingProcessStep::STATUS_INTERRUPTED
-		) {
-			// Continue interrupted process
-			return $this->updateInfo( $pid, [
-				'p_state' => Process::STATUS_STARTED,
-			] );
-		}
+	public function recordStart( $pid ): bool {
+		return $this->updateInfo( $pid, [
+			'p_state' => Process::STATUS_STARTED,
+		] );
+	}
 
-		return $db->insert(
+	public function getEnqueuedProcesses(): array {
+		$db = $this->loadBalancer->getConnection( DB_REPLICA );
+		$res = $db->select(
 			'processes',
 			[
-				'p_pid' => $pid,
-				'p_state' => Process::STATUS_STARTED,
-				'p_timeout' => $timeout,
-				'p_started' => $db->timestamp( ( new DateTime() )->format( 'YmdHis' ) ),
-				'p_steps' => json_encode( $steps )
+				'p_pid',
+				'p_state',
+				'p_exitcode',
+				'p_exitstatus',
+				'p_started',
+				'p_timeout',
+				'p_output',
+				'p_steps'
+			],
+			[
+				'p_state' => Process::STATUS_READY
 			],
 			__METHOD__
 		);
+		$processes = [];
+		foreach ( $res as $row ) {
+			$processes[] = ProcessInfo::newFromRow( $row );
+		}
+		return $processes;
 	}
 
 	/**
@@ -236,32 +235,12 @@ class ProcessManager {
 	 */
 	private function updateInfo( $pid, array $data ) {
 		$db = $this->loadBalancer->getConnection( DB_PRIMARY );
-		$success = $db->update(
+		return $db->update(
 			'processes',
 			$data,
 			[ 'p_pid' => $pid ],
 			__METHOD__
 		);
-
-		$this->logger->info(
-			"Process {pid} update info status: {status}", [
-				'key' => $pid,
-				'status' => $success,
-			]
-		);
-
-		return $success;
-	}
-
-	/**
-	 * @param ProcessInfo $info
-	 * @return bool
-	 */
-	private function isTimeoutReached( ProcessInfo $info ): bool {
-		$start = $info->getStartDate();
-		$maxTime = $start->add( new DateInterval( "PT{$info->getTimeout()}S" ) );
-
-		return new DateTime() > $maxTime;
 	}
 
 	/**
@@ -270,13 +249,12 @@ class ProcessManager {
 	private function garbageCollect() {
 		$db = $this->loadBalancer->getConnection( DB_PRIMARY );
 		$hourAgo = ( new DateTime() )->sub( new DateInterval( "PT{$this->garbageInterval}M" ) );
-
-		$this->logger->info( "Running process garbage collection at " . date( 'Y-m-d H:i:s' ) );
-
 		$db->delete(
 			'processes',
 			[
-				'p_started < ' . $db->timestamp( $hourAgo->format( 'YmdHis' ) )
+				'p_started < ' . $db->timestamp( $hourAgo->format( 'YmdHis' ) ),
+				// Status is not PROCESS_INTERRUPTED
+				'p_state != ' . $db->addQuotes( InterruptingProcessStep::STATUS_INTERRUPTED ),
 			],
 			__METHOD__
 		);
