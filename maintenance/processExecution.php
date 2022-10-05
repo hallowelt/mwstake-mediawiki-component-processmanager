@@ -3,47 +3,36 @@
 use MediaWiki\MediaWikiServices;
 use MWStake\MediaWiki\Component\ProcessManager\InterruptingProcessStep;
 use MWStake\MediaWiki\Component\ProcessManager\IProcessStep;
-use MWStake\MediaWiki\Component\ProcessManager\ProcessInfo;
-use MWStake\MediaWiki\Component\ProcessManager\ProcessManager;
 
 require_once $argv[1];
 
 class ProcessExecution extends Maintenance {
-	public function __construct() {
-		parent::__construct();
-		// TODO: Run as service, limit...
-	}
+	/** @var array */
+	private $steps = [];
+	/** @var array */
+	private $initData = [];
 
 	public function execute() {
-		$manager = new ProcessManager(
-			MediaWikiServices::getInstance()->getDBLoadBalancer()
-		);
-		/** @var ProcessInfo $info */
-		foreach ( $manager->getEnqueuedProcesses() as $info ) {
-			$this->output( "Starting process {$info->getPid()}..." );
-			try {
-				$steps = $info->getSteps();
-				$data = $info->getOutput();
-				$data = $this->executeSteps( $steps, $data );
-				if ( isset( $data['interrupt' ] ) ) {
-					$manager->recordInterrupt( $info->getPid(), $data['interrupt'], $data['data'] );
-					$this->output( "Interrupted\n" );
-					continue;
-				}
-				$manager->recordFinish( $info->getPid(), 0, '', $data );
-				$this->output( "Finished\n" );
-			} catch ( Exception $e ) {
-				$manager->recordFinish(
-					$info->getPid(), 1, $e->getMessage(), $e->getPrevious()->getTrace()
-				);
-				$this->output( "Failed\n" );
-			}
+		$input = $this->getStdin();
+		if ( !$input ) {
+			throw new Exception( 'No input provided' );
 		}
+		$content = stream_get_contents( $input );
+		$decoded = json_decode( $content, 1 );
+		$code = json_last_error();
+		if ( $code ) {
+			throw new Exception( "Cannot parse steps: {$code}" );
+		}
+		$this->steps = $decoded['steps'];
+		$this->initData = $decoded['data'] ?? [];
+		$data = $this->executeSteps();
+		$this->output( json_encode( $data ) );
 	}
 
-	private function executeSteps( $steps, $data ) {
+	private function executeSteps() {
+		$data = $this->initData;
 		$of = MediaWikiServices::getInstance()->getObjectFactory();
-		foreach ( $steps as $name => $spec ) {
+		foreach ( $this->steps as $name => $spec ) {
 			try {
 				$object = $of->createObject( $spec );
 				if ( !( $object instanceof IProcessStep ) ) {
