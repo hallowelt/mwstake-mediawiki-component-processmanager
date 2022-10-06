@@ -3,7 +3,6 @@
 use MediaWiki\MediaWikiServices;
 use MWStake\MediaWiki\Component\ProcessManager\ProcessInfo;
 use MWStake\MediaWiki\Component\ProcessManager\ProcessManager;
-use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\InputStream;
 
 require_once $argv[1];
@@ -16,18 +15,40 @@ class ProcessRunner extends Maintenance {
 
 	public function __construct() {
 		parent::__construct();
-		// TODO: Run as service, limit...
+		$this->addOption( 'wait', 'Wait for incoming processes in queue' );
+		$this->addOption(
+			'max-processes', 'Max number of processes to start before killing runner'
+		);
 	}
 
 	public function execute() {
 		$this->manager = new ProcessManager(
 			MediaWikiServices::getInstance()->getDBLoadBalancer()
 		);
+
+		$maxJobs = (int) $this->getOption( 'max-processes', 0 );
+		$executedJobs = 0;
+		if ( $this->hasOption( 'wait' ) ) {
+			while ( true ) {
+				$executedJobs += $this->runBatch( $maxJobs );
+				sleep( 1 );
+			}
+		} else {
+			$this->runBatch( $maxJobs );
+		}
+	}
+
+	public function runBatch( int $max ) {
+		$cnt = 0;
 		/** @var ProcessInfo $info */
 		foreach ( $this->manager->getEnqueuedProcesses() as $info ) {
-
+			if ( $max > 0 && $cnt >= $max ) {
+				break;
+			}
+			$cnt++;
 			$this->executeProcess( $info );
 		}
+		return $cnt;
 	}
 
 	private function executeProcess( ProcessInfo $info ) {
