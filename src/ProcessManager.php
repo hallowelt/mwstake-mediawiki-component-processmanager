@@ -202,6 +202,9 @@ class ProcessManager {
 		] );
 	}
 
+	/**
+	 * @return array
+	 */
 	public function getEnqueuedProcesses(): array {
 		$db = $this->loadBalancer->getConnection( DB_REPLICA );
 		$res = $db->select(
@@ -260,4 +263,42 @@ class ProcessManager {
 		);
 	}
 
+	/**
+	 * Check is ProcessRunner is running
+	 * @return bool
+	 */
+	public function isRunnerRunning(): bool {
+		$file = sys_get_temp_dir() . '/process-runner.pid';
+		if ( file_exists( $file ) ) {
+			$pid = file_get_contents( $file );
+			if ( $pid ) {
+				$pid = (int)$pid;
+				if ( posix_getsid( $pid ) ) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Store PID of the ProcessRunner instance
+	 *
+	 * @param int $pid
+	 *
+	 * @return bool
+	 */
+	public function storeProcessRunnerId( $pid ): bool {
+		$file = sys_get_temp_dir() . '/process-runner.pid';
+		return (bool)file_put_contents( $file, $pid );
+	}
+
+	/**
+	 * Clear PID of the ProcessRunner instance
+	 * @return bool
+	 */
+	public function clearProcesseRunnerId(): bool {
+		$file = sys_get_temp_dir() . '/process-runner.pid';
+		return (bool)file_put_contents( $file, '' );
+	}
 }

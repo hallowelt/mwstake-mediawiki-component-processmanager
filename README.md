@@ -1,7 +1,7 @@
 # Process Manager
 
 This library allows you to create async background processes, that can be accessed later from anywhere,
-to check the progress and retrieve output.
+to check the progress and retrieve output. When you start the process it will be enqueue, and wait for the processRunner to execute it.
 
 # Usage
 
@@ -84,17 +84,19 @@ To continue the process, you must call `$processManager->proceed( $pid, $data )`
 and `$data` is any modified data to be passed to the next step. This data will be merged with data returned from previous step (the one that paused the process).
 This call will return the PID of the process, which should be the same as the one passed (same process continues).
 
-## Executing synchronous code in steps
-There also may be a case when we want to execute code synchronously, but in several steps, passing data from one step to other.
-In this case `\MWStake\MediaWiki\Component\ProcessManager\CodeExecutor` may be helpful.
+## Executing steps synchronously
+This is a spin-off of this component functionality. It allows you to execute steps synchronously, without the need to start a process.
 
-Sample usage:
 ```php
+$executor = new \MWStake\MediaWiki\Component\ProcessManager\StepExecutor(
+MediaWikiServices::getInstance()->getObjectNameUtils()
+);
+// Optional, if all necessary data is passed in the spec, omit this
 $data = [
-    'some arbitrary data'
+    'input' => 'data for the first step'
 ];
 
-$executor = new CodeExecutor( [
+$executor->execute( [
     'foo-step' => [
         'class' => Foo::class,
         'args' => [
@@ -110,15 +112,50 @@ $executor = new CodeExecutor( [
             $someArg4
         ]
     ]
-] );
-$executor->executeSteps( $data );
+], $data );
 ```
 
 ## Notes
 
-- This lib requires an DB table, so `update.php` will be necessary
-- Old jobs will be deleted 10h after they are created
-- Known issue: If your code (in the step) has an un-catchable error (not passing required param, syntax errors), process will
-not be able to record those and will just crash. Only way to track such processes would be to actually look into the kernel,
-  which is not supported for now. Such jobs will just remain in `running` state until the timeout, after which they will fail
-  with timeout exception.
+- This component requires an DB table, so `update.php` will be necessary
+
+## Setup
+This mechanism has the following main parts:
+- `ProcessManager` - a service that manages processes, and allows to start processes, check on their status
+- `processRunner.php` - script that retrieves processes from the queue and executes them. This is a long-running script that should be started as a background process
+- `processExecution.php` - script that actually runs individual processes. This is a short-lived script and is alive only for the durarion of single process execution
+
+### Setting up processRunner.php
+Script `processRunner.php` should be started by a crontab. There are two modes of operation:
+- executing processes that are currently in the queue
+- always running and waiting for new processes to be added to the queue
+This is the same operation as `runJobs.php` in MediaWiki core.
+
+Parameters:
+- first param should be the full path to the `Mainetenance.php` file in MediaWiki core. This is due to this being
+a component, which does not have a dedicated place in the codebase structure, and can be installed anywhere.
+- `--wait` - wait for new processes to be added to the queue. In this mode, script will create a lock file, that will
+prevent other runners to be started. This is useful when you want to have only one runner running at a time. In case it crashes
+or is otherwise killed, the lock file will be removed and other runners will be able to start.
+- `--max-jobs` - maximum number of processes to execute in one run. This is useful when you want to limit the number of processes.
+In `--wait` mode script will exit once this number is reached. In non-wait mode, script will exit once this number is reached, or
+there are no more processes in the queue.
+- `--script-args` - arguments to be passed to `processExecution.php` script. This is useful when you want to pass some arguments,
+namely important for the farming setup, passing `--script-args='--sfr={wiki}'`
+
+Crontab example:
+Should be executed as either the webserver user or root.
+```
+* * * * * /usr/bin/php /var/www/html/mw/extensions/MWStake/ProcessManager/processRunner.php /var/www/bluespice/w/maintenance/Maintenance.php --wait --max-jobs=10 --script-args='--sfr={wiki}'
+```
+
+### Logging
+Normally, runner logs into `ProcessRunner` channel of debug log mechanism, but it might also be useful to capture
+output of the script directly (in crontab line) and pipe that into some log, so we can catch any errors in the runner itself.
+
+## Consirederations that were taken in implementation
+This is not an idea way to set up background processing, but we have taken following considerations into account:
+- we want to have a parent for all processes, so they dont end up as zombies, and we can capture any output of them
+- we do NOT want to need to setup any separate services on machines, like Redis, RabbitMQ, etc. Ideally, no additional setup would be required, but crontab line is necessary.
+- we do NOT want to wait for crontab to execute the process, we want to be able to start it immediately, therefore we have the `--wait` parameter
+- it has to work on both Linux and Windows

@@ -17,10 +17,16 @@ class ManagedProcess {
 		$this->timeout = $timeout;
 	}
 
+	/**
+	 * @return array
+	 */
 	public function getSteps(): array {
 		return $this->steps;
 	}
 
+	/**
+	 * @return int|null
+	 */
 	public function getTimeout(): ?int {
 		return $this->timeout;
 	}
