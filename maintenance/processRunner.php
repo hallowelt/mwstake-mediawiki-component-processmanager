@@ -116,7 +116,7 @@ class ProcessRunner extends Maintenance {
 				$this->output( "Interrupted\n" );
 				return;
 			}
-			$this->manager->recordFinish( $info->getPid(), 0, '', $data );
+			$this->manager->recordFinish( $info->getPid(), 0, 'success', $data );
 			$this->logger->info( 'Process finished' );
 			$this->output( "Finished\n" );
 			return;
