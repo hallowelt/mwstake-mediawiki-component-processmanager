@@ -146,7 +146,7 @@ namely important for the farming setup, passing `--script-args='--sfr={wiki}'`
 Crontab example:
 Should be executed as either the webserver user or root.
 ```
-* * * * * /usr/bin/php /var/www/html/mw/vendor/mwstake/mediawiki-component-processmanager/maintenance/processRunner.php /var/www/bluespice/w/maintenance/Maintenance.php --wait --max-processes=10 --script-args='--sfr={wiki}'
+* * * * * /usr/bin/php /var/www/html/mw/vendor/mwstake/mediawiki-component-processmanager/maintenance/processRunner.php /var/www/html/mw/maintenance/Maintenance.php --wait --max-processes=10 --script-args='--sfr={wiki}'
 ```
 
 
