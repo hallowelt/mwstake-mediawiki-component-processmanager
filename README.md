@@ -146,8 +146,10 @@ namely important for the farming setup, passing `--script-args='--sfr={wiki}'`
 Crontab example:
 Should be executed as either the webserver user or root.
 ```
-* * * * * /usr/bin/php /var/www/html/mw/extensions/MWStake/ProcessManager/processRunner.php /var/www/bluespice/w/maintenance/Maintenance.php --wait --max-jobs=10 --script-args='--sfr={wiki}'
+* * * * * /usr/bin/php /var/www/html/mw/vendor/mwstake/mediawiki-component-processmanager/maintenance/processRunner.php /var/www/bluespice/w/maintenance/Maintenance.php --wait --max-processes=10 --script-args='--sfr={wiki}'
 ```
+
+
 
 ### Logging
 Normally, runner logs into `ProcessRunner` channel of debug log mechanism, but it might also be useful to capture
