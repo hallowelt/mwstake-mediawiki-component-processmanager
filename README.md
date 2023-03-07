@@ -149,6 +149,9 @@ Should be executed as either the webserver user or root.
 * * * * * /usr/bin/php /var/www/html/mw/vendor/mwstake/mediawiki-component-processmanager/maintenance/processRunner.php /var/www/html/mw/maintenance/Maintenance.php --wait --max-processes=10 --script-args='--sfr={wiki}'
 ```
 
+**Only use `--script-args='--sfr={wiki}'` when in a farming setup. In a farm, set up one cron per instance and replace `{wiki}` with actual wiki name you want to run the cront for.**
+
+**If using `--max-processes` together with `--wait`, make sure to set number of processes to a fairly high number, since we dont want to reset the runner frequently**
 
 
 ### Logging
