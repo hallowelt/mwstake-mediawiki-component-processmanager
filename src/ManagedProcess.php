@@ -1,6 +1,6 @@
 <?php
 
-namespace  MWStake\MediaWiki\Component\ProcessManager;
+namespace MWStake\MediaWiki\Component\ProcessManager;
 
 class ManagedProcess {
 	/** @var array */
