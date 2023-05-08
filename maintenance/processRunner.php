@@ -102,6 +102,7 @@ class ProcessRunner extends Maintenance {
 		$input->write( json_encode( [
 			'steps' => $info->getSteps(), 'data' => $info->getOutput()
 		] ) );
+
 		$process->setTimeout( $info->getTimeout() );
 		$process->start();
 		$input->close();
@@ -124,7 +125,7 @@ class ProcessRunner extends Maintenance {
 
 		$errorOut = $process->getErrorOutput();
 		$this->manager->recordFinish(
-			$info->getPid(), $process->getExitCode(), "failed", $errorOut
+			$info->getPid(), $process->getExitCode(), "failed", [ 'stack' => $errorOut ]
 		);
 
 		$this->logger->info( 'Process failed' );
