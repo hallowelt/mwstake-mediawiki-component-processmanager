@@ -303,7 +303,7 @@ class ProcessManager {
 		$data = [];
 		if ( file_exists( $file ) ) {
 			$fileData = json_decode( file_get_contents( $file ), true );
-			if ( $fileData ) {
+			if ( is_array( $fileData ) ) {
 				$data = $fileData;
 			}
 		}
