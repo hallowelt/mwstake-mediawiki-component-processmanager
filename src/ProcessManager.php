@@ -270,6 +270,7 @@ class ProcessManager {
 	 * @return bool
 	 */
 	public function isRunnerRunning( $id ): bool {
+
 		$file = sys_get_temp_dir() . '/process-runner.pid';
 		if ( !file_exists( $file ) ) {
 			return false;
@@ -283,6 +284,9 @@ class ProcessManager {
 		}
 
 		$pid = (int)$fileData[$id];
+		if ( wfIsWindows() ) {
+			return $this->isWindowsPidRunning( $pid );
+		}
 		return (bool)posix_getsid( $pid );
 	}
 
@@ -299,7 +303,7 @@ class ProcessManager {
 		$data = [];
 		if ( file_exists( $file ) ) {
 			$fileData = json_decode( file_get_contents( $file ), true );
-			if ( is_array( $fileData ) ) {
+			if ( $fileData ) {
 				$data = $fileData;
 			}
 		}
@@ -314,5 +318,35 @@ class ProcessManager {
 	public function clearProcesseRunnerId(): bool {
 		$file = sys_get_temp_dir() . '/process-runner.pid';
 		return (bool)file_put_contents( $file, '' );
+	}
+
+	/**
+	 * @param string|int $pid
+	 *
+	 * @return bool
+	 */
+	private function isWindowsPidRunning( $pid ): bool {
+		$taskList = [];
+		exec( "tasklist 2>NUL", $taskList );
+		foreach ( $taskList as $line ) {
+			// Get PID
+			$line = preg_replace( '/\s+/', ' ', $line );
+			$line = explode( ' ', $line );
+			$line = array_filter( $line );
+			$line = array_values( $line );
+			if ( count( $line ) < 2 ) {
+				continue;
+			}
+			$pidLine = $line[1];
+			if ( !is_numeric( $pidLine ) ) {
+				continue;
+			}
+			$pidLine = (int)$pidLine;
+			if ( $pidLine === (int)$pid ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }
