@@ -265,32 +265,50 @@ class ProcessManager {
 
 	/**
 	 * Check is ProcessRunner is running
+	 * @param string $id Runner id
+	 *
 	 * @return bool
 	 */
-	public function isRunnerRunning(): bool {
+	public function isRunnerRunning( $id ): bool {
+
 		$file = sys_get_temp_dir() . '/process-runner.pid';
-		if ( file_exists( $file ) ) {
-			$pid = file_get_contents( $file );
-			if ( $pid ) {
-				$pid = (int)$pid;
-				if ( posix_getsid( $pid ) ) {
-					return true;
-				}
-			}
+		if ( !file_exists( $file ) ) {
+			return false;
 		}
-		return false;
+		$fileData = json_decode( file_get_contents( $file ), true );
+		if ( !$fileData ) {
+			return false;
+		}
+		if ( !isset( $fileData[$id] ) ) {
+			return false;
+		}
+
+		$pid = (int)$fileData[$id];
+		if ( wfIsWindows() ) {
+			return $this->isWindowsPidRunning( $pid );
+		}
+		return (bool)posix_getsid( $pid );
 	}
 
 	/**
 	 * Store PID of the ProcessRunner instance
-	 *
-	 * @param int $pid
+	 * @param string $id Runner id
+	 * @param int $pid Process id for the runner
 	 *
 	 * @return bool
 	 */
-	public function storeProcessRunnerId( $pid ): bool {
+	public function storeProcessRunnerId( string $id, int $pid ): bool {
 		$file = sys_get_temp_dir() . '/process-runner.pid';
-		return (bool)file_put_contents( $file, $pid );
+
+		$data = [];
+		if ( file_exists( $file ) ) {
+			$fileData = json_decode( file_get_contents( $file ), true );
+			if ( is_array( $fileData ) ) {
+				$data = $fileData;
+			}
+		}
+		$data[$id] = $pid;
+		return (bool)file_put_contents( $file, json_encode( $data ) );
 	}
 
 	/**
@@ -300,5 +318,35 @@ class ProcessManager {
 	public function clearProcesseRunnerId(): bool {
 		$file = sys_get_temp_dir() . '/process-runner.pid';
 		return (bool)file_put_contents( $file, '' );
+	}
+
+	/**
+	 * @param string|int $pid
+	 *
+	 * @return bool
+	 */
+	private function isWindowsPidRunning( $pid ): bool {
+		$taskList = [];
+		exec( "tasklist 2>NUL", $taskList );
+		foreach ( $taskList as $line ) {
+			// Get PID
+			$line = preg_replace( '/\s+/', ' ', $line );
+			$line = explode( ' ', $line );
+			$line = array_filter( $line );
+			$line = array_values( $line );
+			if ( count( $line ) < 2 ) {
+				continue;
+			}
+			$pidLine = $line[1];
+			if ( !is_numeric( $pidLine ) ) {
+				continue;
+			}
+			$pidLine = (int)$pidLine;
+			if ( $pidLine === (int)$pid ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }

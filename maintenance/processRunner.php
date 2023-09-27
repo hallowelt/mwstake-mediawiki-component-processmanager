@@ -31,12 +31,13 @@ class ProcessRunner extends Maintenance {
 		$this->manager = new ProcessManager(
 			MediaWikiServices::getInstance()->getDBLoadBalancer()
 		);
-		if ( $this->manager->isRunnerRunning() ) {
-			$this->output( "ProcessRunner is already running\n" );
+		$runnerId = $this->getRunnerId();
+		if ( $this->manager->isRunnerRunning( $runnerId ) ) {
+			$this->output( "ProcessRunner with these arguments is already running\n" );
 			exit();
 		}
 		$this->output( "Starting ProcessRunner\n" );
-		$this->manager->storeProcessRunnerId( getmypid() );
+		$this->manager->storeProcessRunnerId( $runnerId, getmypid() );
 
 		$this->logger->info( 'Starting process runner' );
 		$maxJobs = (int)$this->getOption( 'max-processes', 0 );
@@ -102,6 +103,7 @@ class ProcessRunner extends Maintenance {
 		$input->write( json_encode( [
 			'steps' => $info->getSteps(), 'data' => $info->getOutput()
 		] ) );
+
 		$process->setTimeout( $info->getTimeout() );
 		$process->start();
 		$input->close();
@@ -124,12 +126,30 @@ class ProcessRunner extends Maintenance {
 
 		$errorOut = $process->getErrorOutput();
 		$this->manager->recordFinish(
-			$info->getPid(), $process->getExitCode(), "failed", $errorOut
+			$info->getPid(), $process->getExitCode(), "failed", [ 'stack' => $errorOut ]
 		);
 
 		$this->logger->info( 'Process failed' );
 		$this->logger->debug( $errorOut );
 		$this->output( "Failed\n" );
+	}
+
+	/**
+	 * Generate unique runner id
+	 * This id includes passed `script-args` to allow for different runners to be
+	 * started with different arguments in parallel
+	 * @return string
+	 */
+	private function getRunnerId(): string {
+		// Path to mainenance script
+		$id = md5( $this->parameters->getArg( 0 ) );
+		if ( $this->hasOption( 'script-args' ) ) {
+			$value = $this->getOption( 'script-args' );
+			$value = str_replace( ' ', '', $value );
+			$value = str_replace( '-', '', $value );
+			$id .= '#' . md5( $value );
+		}
+		return $id;
 	}
 }
 
