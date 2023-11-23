@@ -270,7 +270,6 @@ class ProcessManager {
 	 * @return bool
 	 */
 	public function isRunnerRunning( $id ): bool {
-
 		$file = sys_get_temp_dir() . '/process-runner.pid';
 		if ( !file_exists( $file ) ) {
 			return false;
@@ -327,6 +326,7 @@ class ProcessManager {
 	 */
 	private function isWindowsPidRunning( $pid ): bool {
 		$taskList = [];
+		// phpcs:ignore MediaWiki.Usage.ForbiddenFunctions.exec
 		exec( "tasklist 2>NUL", $taskList );
 		foreach ( $taskList as $line ) {
 			// Get PID
