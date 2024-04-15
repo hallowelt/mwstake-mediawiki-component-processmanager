@@ -6,7 +6,7 @@ if ( defined( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION' ) ) {
 	return;
 }
 
-define( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION', '2.1.0' );
+define( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION', '2.0.7' );
 
 Bootstrapper::getInstance()
 	->register( 'processmanager', static function () {
