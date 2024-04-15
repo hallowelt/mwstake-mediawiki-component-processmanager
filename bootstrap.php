@@ -1,5 +1,6 @@
 <?php
 
+use MediaWiki\Installer\DatabaseUpdater;
 use MWStake\MediaWiki\ComponentLoader\Bootstrapper;
 
 if ( defined( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION' ) ) {
@@ -12,6 +13,7 @@ Bootstrapper::getInstance()
 	->register( 'processmanager', static function () {
 		$GLOBALS['wgServiceWiringFiles'][] = __DIR__ . '/includes/ServiceWiring.php';
 		$GLOBALS['wgHooks']['LoadExtensionSchemaUpdates'][] = static function ( DatabaseUpdater $updater ) {
-			$updater->addExtensionTable( 'processes', __DIR__ . '/db/processes.sql' );
+			$dbType = $updater->getDB()->getType();
+			$updater->addExtensionTable( 'processes', __DIR__ . "/db/$dbType/processes.sql" );
 		};
 	} );
