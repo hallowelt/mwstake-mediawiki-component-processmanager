@@ -1,13 +1,12 @@
 <?php
 
-use MediaWiki\Installer\DatabaseUpdater;
 use MWStake\MediaWiki\ComponentLoader\Bootstrapper;
 
 if ( defined( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION' ) ) {
 	return;
 }
 
-define( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION', '2.0.6' );
+define( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION', '2.0.7' );
 
 Bootstrapper::getInstance()
 	->register( 'processmanager', static function () {
