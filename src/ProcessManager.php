@@ -224,7 +224,8 @@ class ProcessManager {
 				'p_started',
 				'p_timeout',
 				'p_output',
-				'p_steps'
+				'p_steps',
+				'p_last_completed_step'
 			],
 			[
 				'p_state' => Process::STATUS_READY
