@@ -39,7 +39,7 @@ class StepExecutor {
 
 				$data = $object->execute( $data );
 				if ( $manager && $pid ) {
-					$manager->storeInterruptedStep( $pid, $name );
+					$manager->storeLastCompletedStep( $pid, $name );
 				}
 				if ( $object instanceof InterruptingProcessStep ) {
 					return [

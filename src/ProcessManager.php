@@ -68,7 +68,8 @@ class ProcessManager {
 				'p_started',
 				'p_timeout',
 				'p_output',
-				'p_steps'
+				'p_steps',
+				'p_last_completed_step'
 			],
 			[
 				'p_pid' => $pid
@@ -202,6 +203,12 @@ class ProcessManager {
 		] );
 	}
 
+	public function storeLastCompletedStep( string $pid, string $step ) {
+		return $this->updateInfo( $pid, [
+			'p_last_completed_step' => $step,
+		] );
+	}
+
 	/**
 	 * @return array
 	 */
@@ -270,6 +277,7 @@ class ProcessManager {
 	 * @return bool
 	 */
 	public function isRunnerRunning( $id ): bool {
+
 		$file = sys_get_temp_dir() . '/process-runner.pid';
 		if ( !file_exists( $file ) ) {
 			return false;
@@ -326,7 +334,6 @@ class ProcessManager {
 	 */
 	private function isWindowsPidRunning( $pid ): bool {
 		$taskList = [];
-		// phpcs:ignore MediaWiki.Usage.ForbiddenFunctions.exec
 		exec( "tasklist 2>NUL", $taskList );
 		foreach ( $taskList as $line ) {
 			// Get PID
