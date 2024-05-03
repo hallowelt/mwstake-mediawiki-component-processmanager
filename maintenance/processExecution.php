@@ -1,11 +1,14 @@
 <?php
 
 use MediaWiki\MediaWikiServices;
+use MWStake\MediaWiki\Component\ProcessManager\ProcessManager;
 use MWStake\MediaWiki\Component\ProcessManager\StepExecutor;
 
 require_once $argv[1];
 
 class ProcessExecution extends Maintenance {
+	/** @var string|null */
+	private $pid;
 	/** @var array */
 	private $steps = [];
 	/** @var array */
@@ -24,15 +27,19 @@ class ProcessExecution extends Maintenance {
 		}
 		$this->steps = $decoded['steps'];
 		$this->initData = $decoded['data'] ?? [];
+		$this->pid = $decoded['pid'] ?? null;
 		$data = $this->executeSteps();
 		$this->output( json_encode( $data ) );
 	}
 
 	private function executeSteps() {
+		$manager = new ProcessManager(
+			MediaWikiServices::getInstance()->getDBLoadBalancer()
+		);
 		$executor = new StepExecutor(
 			MediaWikiServices::getInstance()->getObjectFactory()
 		);
-		return $executor->execute( $this->steps, $this->initData );
+		return $executor->execute( $this->steps, $this->initData, $manager, $this->pid );
 	}
 }
 
