@@ -3,6 +3,7 @@
 namespace MWStake\MediaWiki\Component\ProcessManager;
 
 use Exception;
+
 use Wikimedia\ObjectFactory\ObjectFactory;
 
 class StepExecutor {
@@ -25,7 +26,7 @@ class StepExecutor {
 	 * @return array|mixed|null
 	 * @throws Exception
 	 */
-	public function execute( $steps, $data = [] ) {
+	public function execute( $steps, $data = [], ?ProcessManager $manager = null, ?string $pid = null ) {
 		foreach ( $steps as $name => $spec ) {
 			try {
 				$object = $this->objectFactory->createObject( $spec );
@@ -37,12 +38,16 @@ class StepExecutor {
 				}
 
 				$data = $object->execute( $data );
+				if ( $manager && $pid ) {
+					$manager->storeInterruptedStep( $pid, $name );
+				}
 				if ( $object instanceof InterruptingProcessStep ) {
 					return [
 						'interrupt' => $name,
 						'data' => $data ?? [],
 					];
 				}
+
 			} catch ( Exception $ex ) {
 				throw new Exception(
 					"Step \"$name\" failed: " . $ex->getMessage(),

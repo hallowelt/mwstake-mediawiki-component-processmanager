@@ -24,6 +24,8 @@ class ProcessInfo implements JsonSerializable {
 	private $data;
 	/** @var array */
 	private $steps;
+	/** @var string|null */
+	private $lastCompletedStep;
 
 	/**
 	 * @param stdClass $row
@@ -39,6 +41,7 @@ class ProcessInfo implements JsonSerializable {
 			$row->p_exitstatus,
 			$row->p_output !== null ? json_decode( $row->p_output, 1 ) : [],
 			$row->p_steps !== null ? json_decode( $row->p_steps, 1 ) : [],
+			$row->p_last_completed_step ?? null
 		);
 	}
 
@@ -54,7 +57,7 @@ class ProcessInfo implements JsonSerializable {
 	 */
 	public function __construct(
 		$pid, $state, DateTime $started, $timeout, $exitCode = null,
-		$exitStatus = null, $data = [], $steps = []
+		$exitStatus = null, $data = [], $steps = [], $lastCompletedStep = null
 	) {
 		$this->pid = $pid;
 		$this->state = $state;
@@ -64,6 +67,7 @@ class ProcessInfo implements JsonSerializable {
 		$this->timeout = $timeout;
 		$this->data = $data;
 		$this->steps = $steps;
+		$this->lastCompletedStep = $lastCompletedStep;
 	}
 
 	/**
@@ -122,10 +126,38 @@ class ProcessInfo implements JsonSerializable {
 		return $this->steps;
 	}
 
+	public function getLastCompletedStep(): ?string {
+		return $this->lastCompletedStep;
+	}
+
 	/**
 	 * @return array
 	 */
-	public function jsonSerialize(): array {
+	public function getStepProgress(): array {
+		$progress = [];
+		$reachedCompleted = false;
+		foreach ( $steps as $name => $spec ) {
+			if ( $this->lastCompletedStep && $name !== $this->lastCompletedStep ) {
+				$progress[$name] = 'completed';
+				continue;
+			}
+			if ( $name === $this->lastCompletedStep ) {
+				$progress[$name] = 'completed';
+				$reachedCompleted = true;
+				continue;
+			}
+			if ( $reachedCompleted || !$this->lastCompletedStep ) {
+				$progress[$name] = 'pending';
+				continue;
+			}
+
+		}
+	}
+
+	/**
+	 * @return array
+	 */
+	public function jsonSerialize() {
 		return [
 			'pid' => $this->pid,
 			'state' => $this->getState(),
@@ -133,7 +165,8 @@ class ProcessInfo implements JsonSerializable {
 			'exitCode' => $this->exitCode,
 			'exitStatus' => $this->exitStatus,
 			'output' => $this->data,
-			'steps' => $this->steps
+			'steps' => $this->steps,
+			'lastCompletedStep' => $this->lastCompletedStep
 		];
 	}
 

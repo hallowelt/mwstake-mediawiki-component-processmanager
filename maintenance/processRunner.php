@@ -101,7 +101,7 @@ class ProcessRunner extends Maintenance {
 		$input = new InputStream();
 		$process->setInput( $input );
 		$input->write( json_encode( [
-			'steps' => $info->getSteps(), 'data' => $info->getOutput()
+			'steps' => $info->getSteps(), 'data' => $info->getOutput(), 'pid' => $info->getPid()
 		] ) );
 
 		$process->setTimeout( $info->getTimeout() );
