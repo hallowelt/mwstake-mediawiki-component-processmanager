@@ -157,7 +157,7 @@ class ProcessInfo implements JsonSerializable {
 	/**
 	 * @return array
 	 */
-	public function jsonSerialize() {
+	public function jsonSerialize(): array {
 		return [
 			'pid' => $this->pid,
 			'state' => $this->getState(),

@@ -7,5 +7,5 @@ CREATE TABLE IF NOT EXISTS /*$wgDBprefix*/processes (
 	`p_timeout` INT NOT NULL,
 	`p_output` TEXT NULL,
 	`p_steps` TEXT NULL,
-    `p_last_completed_step` VARCHAR(255) NULL
+	`p_last_completed_step` VARCHAR(255) NULL
 );
