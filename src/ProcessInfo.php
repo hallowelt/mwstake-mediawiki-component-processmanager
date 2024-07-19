@@ -127,6 +127,34 @@ class ProcessInfo implements JsonSerializable {
 		return $this->steps;
 	}
 
+	public function getLastCompletedStep(): ?string {
+		return $this->lastCompletedStep;
+	}
+
+	/**
+	 * @return array
+	 */
+	public function getStepProgress(): array {
+		$progress = [];
+		$reachedCompleted = false;
+		foreach ( $this->getSteps() as $name => $spec ) {
+			if ( $name === $this->lastCompletedStep ) {
+				$progress[$name] = 'completed';
+				$reachedCompleted = true;
+				continue;
+			}
+			if ( $reachedCompleted || !$this->lastCompletedStep ) {
+				$progress[$name] = 'pending';
+				continue;
+			}
+			if ( $this->lastCompletedStep && $name !== $this->lastCompletedStep ) {
+				$progress[$name] = 'completed';
+				continue;
+			}
+		}
+		return $progress;
+	}
+
 	/**
 	 * @return string|null
 	 */
