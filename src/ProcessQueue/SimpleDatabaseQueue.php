@@ -229,7 +229,7 @@ class SimpleDatabaseQueue implements IProcessQueue {
 	 * Delete all processes older than 1 day
 	 */
 	private function garbageCollect() {
-		$dayAgo = ( new DateTime() )->sub( new DateInterval( "PT1D" ) );
+		$dayAgo = ( new DateTime() )->sub( new DateInterval( 'P1D' ) );
 		$this->getDB()->delete(
 			'processes',
 			[
