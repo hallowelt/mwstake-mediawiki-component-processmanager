@@ -22,7 +22,8 @@ class StepExecutor {
 	/**
 	 * @param array $steps
 	 * @param array|null $data
-	 *
+	 * @param ProcessManager|null $manager
+	 * @param string|null $pid
 	 * @return array|mixed|null
 	 * @throws Exception
 	 */

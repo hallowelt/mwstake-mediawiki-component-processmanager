@@ -1,7 +1,6 @@
 <?php
 
 use MediaWiki\MediaWikiServices;
-use MWStake\MediaWiki\Component\ProcessManager\ProcessManager;
 use MWStake\MediaWiki\Component\ProcessManager\StepExecutor;
 
 require_once $argv[1];

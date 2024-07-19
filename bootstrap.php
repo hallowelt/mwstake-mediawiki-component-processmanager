@@ -11,12 +11,15 @@ define( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION', '2.1.0' );
 Bootstrapper::getInstance()
 	->register( 'processmanager', static function () {
 		$GLOBALS['wgServiceWiringFiles'][] = __DIR__ . '/includes/ServiceWiring.php';
+
 		$GLOBALS['wgHooks']['LoadExtensionSchemaUpdates'][] = static function ( DatabaseUpdater $updater ) {
-			$updater->addExtensionTable( 'processes', __DIR__ . '/db/processes.sql' );
+			$dbType = $updater->getDB()->getType();
+
+			$updater->addExtensionTable( 'processes', __DIR__ . "/db/$dbType/processes.sql" );
 			$updater->addExtensionField(
 				'processes',
 				'p_last_completed_step',
-				__DIR__ . '/db/processes_last_completed_step_patch.sql'
+				__DIR__ . "/db/$dbType/patch_last_completed_step.sql"
 			);
 		};
 

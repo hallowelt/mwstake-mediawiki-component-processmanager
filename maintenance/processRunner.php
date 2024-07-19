@@ -204,7 +204,9 @@ class ProcessRunner extends Maintenance {
 	 */
 	private function isWindowsPidRunning( $pid ): bool {
 		$taskList = [];
+		// @codingStandardsIgnoreStart
 		exec( "tasklist 2>NUL", $taskList );
+		// @codingStandardsIgnoreEnd
 		foreach ( $taskList as $line ) {
 			// Get PID
 			$line = preg_replace( '/\s+/', ' ', $line );

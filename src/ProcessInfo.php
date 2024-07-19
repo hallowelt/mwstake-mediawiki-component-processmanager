@@ -54,6 +54,7 @@ class ProcessInfo implements JsonSerializable {
 	 * @param string|null $exitStatus
 	 * @param array|null $data
 	 * @param array|null $steps
+	 * @param string|null $lastCompletedStep
 	 */
 	public function __construct(
 		$pid, $state, DateTime $started, $timeout, $exitCode = null,
@@ -126,6 +127,9 @@ class ProcessInfo implements JsonSerializable {
 		return $this->steps;
 	}
 
+	/**
+	 * @return string|null
+	 */
 	public function getLastCompletedStep(): ?string {
 		return $this->lastCompletedStep;
 	}
