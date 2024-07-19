@@ -138,20 +138,15 @@ a component, which does not have a dedicated place in the codebase structure, an
 prevent other runners to be started. This is useful when you want to have only one runner running at a time. In case it crashes
 or is otherwise killed, the lock file will be removed and other runners will be able to start.
 - `--max-jobs` - maximum number of processes to execute in one run. This is useful when you want to limit the number of processes.
-In `--wait` mode script will exit once this number is reached. In non-wait mode, script will exit once this number is reached, or
-there are no more processes in the queue.
-- `--script-args` - arguments to be passed to `processExecution.php` script. This is useful when you want to pass some arguments,
-namely important for the farming setup, passing `--script-args='--sfr={wiki}'`
+- `--script-args` - arguments to be passed to `processExecution.php` script. Avoid using if not sure what you are doing.
 
 Crontab example:
 Should be executed as either the webserver user or root.
 ```
-* * * * * /usr/bin/php /var/www/html/mw/vendor/mwstake/mediawiki-component-processmanager/maintenance/processRunner.php /var/www/html/mw/maintenance/Maintenance.php --wait --max-processes=10 --script-args='--sfr={wiki}'
+* * * * * /usr/bin/php /var/www/html/mw/vendor/mwstake/mediawiki-component-processmanager/maintenance/processRunner.php /var/www/html/mw/maintenance/Maintenance.php --wait'
 ```
 
-**Only use `--script-args='--sfr={wiki}'` when in a farming setup. In a farm, set up one cron per instance and replace `{wiki}` with actual wiki name you want to run the cront for.**
-
-**If using `--max-processes` together with `--wait`, make sure to set number of processes to a fairly high number, since we dont want to reset the runner frequently**
+** When `--wait` is specified, `--max-processes` has no effect**
 
 
 ### Logging
