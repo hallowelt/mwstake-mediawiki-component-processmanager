@@ -2,8 +2,6 @@
 
 namespace MWStake\MediaWiki\Component\ProcessManager;
 
-use Symfony\Component\Process\Process;
-
 interface IProcessQueue {
 
 	/**
