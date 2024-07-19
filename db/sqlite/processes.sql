@@ -7,5 +7,5 @@ CREATE TABLE /*_*/processes (
   p_exitcode SMALLINT UNSIGNED DEFAULT NULL,
   p_exitstatus CLOB DEFAULT '', p_started BLOB DEFAULT NULL,
   p_timeout INTEGER NOT NULL, p_output CLOB DEFAULT NULL,
-  p_steps CLOB DEFAULT NULL
+  p_steps CLOB DEFAULT NULL, p_last_completed_step BLOB DEFAULT NULL
 );

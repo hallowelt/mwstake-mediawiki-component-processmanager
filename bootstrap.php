@@ -14,13 +14,14 @@ Bootstrapper::getInstance()
 
 		$GLOBALS['wgHooks']['LoadExtensionSchemaUpdates'][] = static function ( DatabaseUpdater $updater ) {
 			$dbType = $updater->getDB()->getType();
-			$updater->addExtensionTable( 'processes', __DIR__ . "/db/$dbType/processes.sql" );
 
+			$updater->addExtensionTable( 'processes', __DIR__ . "/db/$dbType/processes.sql" );
 			$updater->addExtensionField(
 				'processes',
 				'p_last_completed_step',
-				__DIR__ . "/db/$dbType/processes_last_completed_step_patch.sql"
+				__DIR__ . "/db/$dbType/patch_last_completed_step.sql"
 			);
+			$updater->addExtensionTable( 'processes', __DIR__ . "/db/$dbType/processes.sql" );
 		};
 
 		$GLOBALS['mwsgProcessManagerQueue'] = [

@@ -7,5 +7,5 @@ CREATE TABLE processes (
   p_exitcode SMALLINT DEFAULT NULL,
   p_exitstatus TEXT DEFAULT '', p_started TIMESTAMPTZ DEFAULT NULL,
   p_timeout INT NOT NULL, p_output TEXT DEFAULT NULL,
-  p_steps TEXT DEFAULT NULL
+  p_steps TEXT DEFAULT NULL, p_last_completed_step TEXT DEFAULT NULL
 );

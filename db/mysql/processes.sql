@@ -10,5 +10,6 @@ CREATE TABLE /*_*/processes (
   p_started BINARY(14) DEFAULT NULL,
   p_timeout INT NOT NULL,
   p_output LONGTEXT DEFAULT NULL,
-  p_steps LONGTEXT DEFAULT NULL
+  p_steps LONGTEXT DEFAULT NULL,
+  p_last_completed_step VARBINARY(128) DEFAULT NULL
 ) /*$wgDBTableOptions*/;
