@@ -6,7 +6,7 @@ if ( defined( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION' ) ) {
 	return;
 }
 
-define( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION', '2.0.7' );
+define( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION', '2.1.0' );
 
 Bootstrapper::getInstance()
 	->register( 'processmanager', static function () {
@@ -22,4 +22,9 @@ Bootstrapper::getInstance()
 				__DIR__ . "/db/$dbType/processes_last_completed_step_patch.sql"
 			);
 		};
+
+		$GLOBALS['mwsgProcessManagerQueue'] = [
+			'class' => 'MWStake\MediaWiki\Component\ProcessManager\ProcessQueue\SimpleDatabaseQueue',
+			'services' => [ "DBLoadBalancer" ]
+		];
 	} );

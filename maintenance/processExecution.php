@@ -33,9 +33,7 @@ class ProcessExecution extends Maintenance {
 	}
 
 	private function executeSteps() {
-		$manager = new ProcessManager(
-			MediaWikiServices::getInstance()->getDBLoadBalancer()
-		);
+		$manager = MediaWikiServices::getInstance()->getService( 'ProcessManager' );
 		$executor = new StepExecutor(
 			MediaWikiServices::getInstance()->getObjectFactory()
 		);

@@ -28,16 +28,14 @@ class ProcessRunner extends Maintenance {
 
 	public function execute() {
 		$this->logger = LoggerFactory::getInstance( 'ProcessRunner' );
-		$this->manager = new ProcessManager(
-			MediaWikiServices::getInstance()->getDBLoadBalancer()
-		);
+		$this->manager = MediaWikiServices::getInstance()->getService( 'ProcessManager' );
 		$runnerId = $this->getRunnerId();
-		if ( $this->manager->isRunnerRunning( $runnerId ) ) {
+		if ( $this->isRunnerRunning( $runnerId ) ) {
 			$this->output( "ProcessRunner with these arguments is already running\n" );
 			exit();
 		}
 		$this->output( "Starting ProcessRunner\n" );
-		$this->manager->storeProcessRunnerId( $runnerId, getmypid() );
+		$this->storeProcessRunnerId( $runnerId, getmypid() );
 
 		$this->logger->info( 'Starting process runner' );
 		$maxJobs = (int)$this->getOption( 'max-processes', 0 );
@@ -150,6 +148,83 @@ class ProcessRunner extends Maintenance {
 			$id .= '#' . md5( $value );
 		}
 		return $id;
+	}
+
+	/**
+	 * Check is ProcessRunner is running
+	 * @param string $id Runner id
+	 *
+	 * @return bool
+	 */
+	private function isRunnerRunning( $id ): bool {
+		$file = sys_get_temp_dir() . '/process-runner.pid';
+		if ( !file_exists( $file ) ) {
+			return false;
+		}
+		$fileData = json_decode( file_get_contents( $file ), true );
+		if ( !$fileData ) {
+			return false;
+		}
+		if ( !isset( $fileData[$id] ) ) {
+			return false;
+		}
+
+		$pid = (int)$fileData[$id];
+		if ( wfIsWindows() ) {
+			return $this->isWindowsPidRunning( $pid );
+		}
+		return (bool)posix_getsid( $pid );
+	}
+
+	/**
+	 * Store PID of the ProcessRunner instance
+	 * @param string $id Runner id
+	 * @param int $pid Process id for the runner
+	 *
+	 * @return bool
+	 */
+	private function storeProcessRunnerId( string $id, int $pid ): bool {
+		$file = sys_get_temp_dir() . '/process-runner.pid';
+
+		$data = [];
+		if ( file_exists( $file ) ) {
+			$fileData = json_decode( file_get_contents( $file ), true );
+			if ( is_array( $fileData ) ) {
+				$data = $fileData;
+			}
+		}
+		$data[$id] = $pid;
+		return (bool)file_put_contents( $file, json_encode( $data ) );
+	}
+
+	/**
+	 * @param string|int $pid
+	 *
+	 * @return bool
+	 */
+	private function isWindowsPidRunning( $pid ): bool {
+		$taskList = [];
+		exec( "tasklist 2>NUL", $taskList );
+		foreach ( $taskList as $line ) {
+			// Get PID
+			$line = preg_replace( '/\s+/', ' ', $line );
+			$line = explode( ' ', $line );
+			$line = array_filter( $line );
+			$line = array_values( $line );
+			if ( count( $line ) < 2 ) {
+				continue;
+			}
+			$pidLine = $line[1];
+			if ( !is_numeric( $pidLine ) ) {
+				continue;
+			}
+			$pidLine = (int)$pidLine;
+			if ( $pidLine === (int)$pid ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }
 
