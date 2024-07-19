@@ -6,6 +6,7 @@ use DateInterval;
 use DateTime;
 use MWStake\MediaWiki\Component\ProcessManager\InterruptingProcessStep;
 use MWStake\MediaWiki\Component\ProcessManager\IProcessQueue;
+use MWStake\MediaWiki\Component\ProcessManager\ManagedProcess;
 use MWStake\MediaWiki\Component\ProcessManager\ProcessInfo;
 use Symfony\Component\Process\Process;
 use Wikimedia\Rdbms\IDatabase;
@@ -32,7 +33,7 @@ class SimpleDatabaseQueue implements IProcessQueue {
 	/**
 	 * @inheritDoc
 	 */
-	public function enqueueProcess( array $steps, int $timeout, array $data ): ?string {
+	public function enqueueProcess( ManagedProcess $process, array $data ): ?string {
 		$pid = md5( rand( 1, 9999999 ) + ( new \DateTime() )->getTimestamp() );
 
 		$res = $this->getDB()->insert(
@@ -40,10 +41,12 @@ class SimpleDatabaseQueue implements IProcessQueue {
 			[
 				'p_pid' => $pid,
 				'p_state' => Process::STATUS_READY,
-				'p_timeout' => $timeout,
+				'p_timeout' => $process->getTimeout(),
 				'p_started' => $this->getDB()->timestamp( ( new DateTime() )->format( 'YmdHis' ) ),
 				'p_output' => json_encode( $data ),
-				'p_steps' => json_encode( $steps )
+				'p_steps' => json_encode( $process->getSteps() ),
+				'p_additional_script_args' => $process->getAdditionalArgs() ?
+					json_encode( $process->getAdditionalArgs() ) : null,
 			],
 			__METHOD__
 		);
@@ -153,7 +156,8 @@ class SimpleDatabaseQueue implements IProcessQueue {
 				'p_timeout',
 				'p_output',
 				'p_steps',
-				'p_last_completed_step'
+				'p_last_completed_step',
+				'p_additional_script_args'
 			],
 			[
 				'p_state' => Process::STATUS_READY
@@ -192,7 +196,8 @@ class SimpleDatabaseQueue implements IProcessQueue {
 				'p_timeout',
 				'p_output',
 				'p_steps',
-				'p_last_completed_step'
+				'p_last_completed_step',
+				'p_additional_script_args',
 			],
 			[
 				'p_pid' => $pid

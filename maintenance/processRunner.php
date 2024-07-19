@@ -36,14 +36,14 @@ class ProcessRunner extends Maintenance {
 		}
 		$this->output( "Starting ProcessRunner\n" );
 		$this->storeProcessRunnerId( $runnerId, getmypid() );
+		$this->output( "Using queue: " . get_class( $this->manager->getQueue() ) . "\n" );
 
 		$this->logger->info( 'Starting process runner' );
 		$maxJobs = (int)$this->getOption( 'max-processes', 0 );
-		$executedJobs = 0;
 		if ( $this->hasOption( 'wait' ) ) {
 			$this->logger->info( 'Waiting for incoming processes in queue' );
 			while ( true ) {
-				$executedJobs += $this->runBatch( $maxJobs );
+				$this->runBatch( $maxJobs );
 				sleep( 1 );
 			}
 		} else {
@@ -88,12 +88,14 @@ class ProcessRunner extends Maintenance {
 			return;
 		}
 
-		$externalScriptArgs = $this->getOption( 'script-args' );
-		$externalScriptArgs = $externalScriptArgs ? explode( ' ', $externalScriptArgs ) : [];
+		$extraArgs = array_merge( $this->getAdditionalArgsFromProcess( $info ), $this->getExternalArgs() );
+		if ( $extraArgs ) {
+			$this->output( " ...with additional args: " . implode( ' ', $extraArgs ) . '...' );
+		}
 		$process = new Symfony\Component\Process\Process(
 			array_merge(
 				[ $phpBinaryPath, __DIR__ . '/processExecution.php', $argv[1] ],
-				$externalScriptArgs
+				$extraArgs
 			)
 		);
 		$input = new InputStream();
@@ -227,6 +229,32 @@ class ProcessRunner extends Maintenance {
 		}
 
 		return false;
+	}
+
+	/**
+	 * @return array
+	 */
+	private function getExternalArgs(): array {
+		$externalScriptArgs = $this->getOption( 'script-args' );
+		return $externalScriptArgs ? explode( ' ', $externalScriptArgs ) : [];
+	}
+
+	/**
+	 * @param ProcessInfo $info
+	 * @return array
+	 */
+	private function getAdditionalArgsFromProcess( ProcessInfo $info ): array {
+		$formatted = [];
+		$args = $info->getAdditionalArgs();
+		if ( !$args ) {
+			return [];
+		}
+		foreach ( $args as $key => $value ) {
+			$formatted[] = "--$key";
+			$formatted[] = $value;
+		}
+
+		return $formatted;
 	}
 }
 

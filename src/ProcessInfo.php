@@ -26,6 +26,8 @@ class ProcessInfo implements JsonSerializable {
 	private $steps;
 	/** @var string|null */
 	private $lastCompletedStep;
+	/** @var array|null */
+	private $additionalArgs;
 
 	/**
 	 * @param stdClass $row
@@ -41,7 +43,8 @@ class ProcessInfo implements JsonSerializable {
 			$row->p_exitstatus,
 			$row->p_output !== null ? json_decode( $row->p_output, 1 ) : [],
 			$row->p_steps !== null ? json_decode( $row->p_steps, 1 ) : [],
-			$row->p_last_completed_step ?? null
+			$row->p_last_completed_step ?? null,
+			$row->p_additional_script_args !== null ? json_decode( $row->p_additional_script_args, 1 ) : null
 		);
 	}
 
@@ -55,10 +58,11 @@ class ProcessInfo implements JsonSerializable {
 	 * @param array|null $data
 	 * @param array|null $steps
 	 * @param string|null $lastCompletedStep
+	 * @param null $additionalArgs
 	 */
 	public function __construct(
 		$pid, $state, DateTime $started, $timeout, $exitCode = null,
-		$exitStatus = null, $data = [], $steps = [], $lastCompletedStep = null
+		$exitStatus = null, $data = [], $steps = [], $lastCompletedStep = null, $additionalArgs = null
 	) {
 		$this->pid = $pid;
 		$this->state = $state;
@@ -69,6 +73,7 @@ class ProcessInfo implements JsonSerializable {
 		$this->data = $data;
 		$this->steps = $steps;
 		$this->lastCompletedStep = $lastCompletedStep;
+		$this->additionalArgs = $additionalArgs;
 	}
 
 	/**
@@ -132,6 +137,13 @@ class ProcessInfo implements JsonSerializable {
 	 */
 	public function getLastCompletedStep(): ?string {
 		return $this->lastCompletedStep;
+	}
+
+	/**
+	 * @return array|null
+	 */
+	public function getAdditionalArgs(): ?array {
+		return $this->additionalArgs;
 	}
 
 	/**

@@ -18,6 +18,13 @@ class ProcessManager {
 	}
 
 	/**
+	 * @return IProcessQueue
+	 */
+	public function getQueue(): IProcessQueue {
+		return $this->processQueue;
+	}
+
+	/**
 	 * @param string $pid
 	 * @return ProcessInfo|null
 	 */
@@ -43,7 +50,7 @@ class ProcessManager {
 	 * @return string
 	 */
 	public function startProcess( ManagedProcess $process, $data = [] ): string {
-		return $this->processQueue->enqueueProcess( $process->getSteps(), $process->getTimeout(), $data );
+		return $this->processQueue->enqueueProcess( $process, $data );
 	}
 
 	/**

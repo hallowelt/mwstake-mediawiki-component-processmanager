@@ -1,13 +1,18 @@
 <?php
 
+use MediaWiki\MediaWikiServices;
+use MWStake\MediaWiki\Component\ProcessManager\IProcessQueue;
 use MWStake\MediaWiki\Component\ProcessManager\ProcessManager;
 
 return [
-	'ProcessManager' => static function ( \MediaWiki\MediaWikiServices $services ) {
+	'ProcessManager' => static function ( MediaWikiServices $services ) {
+		return new ProcessManager( $services->getService( 'ProcessManager.Queue' ) );
+	},
+	'ProcessManager.Queue' => static function ( MediaWikiServices $services ) {
 		$queue = $services->getObjectFactory()->createObject( $GLOBALS['mwsgProcessManagerQueue'] );
-		if ( !$queue instanceof \MWStake\MediaWiki\Component\ProcessManager\IProcessQueue ) {
-			throw new RuntimeException( 'Invalid process queue' );
+		if ( !$queue instanceof IProcessQueue ) {
+			throw new RuntimeException( 'Invalid process queue configuration' );
 		}
-		return new ProcessManager( $queue );
+		return $queue;
 	}
 ];

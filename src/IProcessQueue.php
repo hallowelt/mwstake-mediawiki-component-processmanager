@@ -11,12 +11,11 @@ interface IProcessQueue {
 	public function getProcessInfo( string $pid ): ?ProcessInfo;
 
 	/**
-	 * @param array $steps
-	 * @param int $timeout
+	 * @param ManagedProcess $process
 	 * @param array $data
 	 * @return string|null PID of the process or null if process cannot be enqueued
 	 */
-	public function enqueueProcess( array $steps, int $timeout, array $data ): ?string;
+	public function enqueueProcess( ManagedProcess $process, array $data ): ?string;
 
 	/**
 	 * Proceed with the next step of the process that was previously interrupted

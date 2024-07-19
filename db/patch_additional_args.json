@@ -1,0 +1,159 @@
+{
+	"before": {
+		"name": "processes",
+		"columns": [
+			{
+				"name": "p_pid",
+				"type": "binary",
+				"options": {
+					"length": 128,
+					"notnull": true
+				}
+			},
+			{
+				"name": "p_state",
+				"type": "binary",
+				"options": {
+					"length": 255,
+					"notnull": true
+				}
+			},
+			{
+				"name": "p_exitcode",
+				"type": "mwtinyint",
+				"options": {
+					"unsigned": true,
+					"notnull": false
+				}
+			},
+			{
+				"name": "p_exitstatus",
+				"type": "text",
+				"options": {
+					"notnull": false,
+					"default": ""
+				}
+			},
+			{
+				"name": "p_started",
+				"type": "mwtimestamp",
+				"options": {
+					"notnull": false
+				}
+			},
+			{
+				"name": "p_timeout",
+				"type": "integer",
+				"options": {
+					"notnull": true
+				}
+			},
+			{
+				"name": "p_output",
+				"type": "text",
+				"options": {
+					"notnull": false
+				}
+			},
+			{
+				"name": "p_steps",
+				"type": "text",
+				"options": {
+					"notnull": false
+				}
+			},
+			{
+				"name": "p_last_completed_step",
+				"type": "binary",
+				"options": {
+					"length": 128,
+					"notnull": false
+				}
+			}
+		],
+		"indexes": [],
+		"pk": []
+	},
+	"after": {
+		"name": "processes",
+		"columns": [
+			{
+				"name": "p_pid",
+				"type": "binary",
+				"options": {
+					"length": 128,
+					"notnull": true
+				}
+			},
+			{
+				"name": "p_state",
+				"type": "binary",
+				"options": {
+					"length": 255,
+					"notnull": true
+				}
+			},
+			{
+				"name": "p_exitcode",
+				"type": "mwtinyint",
+				"options": {
+					"unsigned": true,
+					"notnull": false
+				}
+			},
+			{
+				"name": "p_exitstatus",
+				"type": "text",
+				"options": {
+					"notnull": false,
+					"default": ""
+				}
+			},
+			{
+				"name": "p_started",
+				"type": "mwtimestamp",
+				"options": {
+					"notnull": false
+				}
+			},
+			{
+				"name": "p_timeout",
+				"type": "integer",
+				"options": {
+					"notnull": true
+				}
+			},
+			{
+				"name": "p_output",
+				"type": "text",
+				"options": {
+					"notnull": false
+				}
+			},
+			{
+				"name": "p_steps",
+				"type": "text",
+				"options": {
+					"notnull": false
+				}
+			},
+			{
+				"name": "p_last_completed_step",
+				"type": "binary",
+				"options": {
+					"length": 128,
+					"notnull": false
+				}
+			},
+			{
+				"name": "p_additional_script_args",
+				"type": "text",
+				"options": {
+					"notnull": false
+				}
+			}
+		],
+		"indexes": [],
+		"pk": []
+	}
+}
