@@ -38,7 +38,7 @@ class ProcessRunner extends Maintenance {
 		$this->storeProcessRunnerId( $runnerId, getmypid() );
 		$this->output( "Using queue: " . get_class( $this->manager->getQueue() ) . "\n" );
 
-		$this->logger->info( 'Starting process runner' );
+		$this->logger->info( 'Starting process runner, queue: ' . get_class( $this->manager->getQueue() ) );
 		$maxJobs = (int)$this->getOption( 'max-processes', 0 );
 		if ( $this->hasOption( 'wait' ) ) {
 			$this->logger->info( 'Waiting for incoming processes in queue' );
@@ -103,6 +103,10 @@ class ProcessRunner extends Maintenance {
 		$input->write( json_encode( [
 			'steps' => $info->getSteps(), 'data' => $info->getOutput(), 'pid' => $info->getPid()
 		] ) );
+		$this->logger->debug( 'Process command: ' . $process->getCommandLine() );
+		$this->logger->debug( 'Input data: ' . json_encode( [
+			'steps' => $info->getSteps(), 'data' => $info->getOutput(), 'pid' => $info->getPid()
+		] ) );
 
 		$process->setTimeout( $info->getTimeout() );
 		$process->start();
@@ -115,11 +119,13 @@ class ProcessRunner extends Maintenance {
 			if ( isset( $data['interrupt' ] ) ) {
 				$this->manager->recordInterrupt( $info->getPid(), $data['interrupt'], $data['data'] );
 				$this->logger->info( 'Process interrupted' );
+				$this->logger->debug( 'Interrupted with: ' . json_encode( $data ) );
 				$this->output( "Interrupted\n" );
 				return;
 			}
 			$this->manager->recordFinish( $info->getPid(), 0, 'success', $data );
 			$this->logger->info( 'Process finished' );
+			$this->logger->debug( 'Output: ' . json_encode( $data ) );
 			$this->output( "Finished\n" );
 			return;
 		}
