@@ -2,9 +2,6 @@
 
 namespace MWStake\MediaWiki\Component\ProcessManager;
 
-use Symfony\Component\Process\Process;
-use Wikimedia\Rdbms\ILoadBalancer;
-
 /**
  * @note Here for backward compatibility
  */
@@ -14,7 +11,7 @@ class ProcessManager {
 	private $processQueue;
 
 	/**
-	 * @param ILoadBalancer $loadBalancer
+	 * @param IProcessQueue $processQueue
 	 */
 	public function __construct( IProcessQueue $processQueue ) {
 		$this->processQueue = $processQueue;
@@ -91,6 +88,11 @@ class ProcessManager {
 		return $this->processQueue->recordStart( $pid );
 	}
 
+	/**
+	 * @param string $pid
+	 * @param string $step
+	 * @return bool
+	 */
 	public function storeLastCompletedStep( string $pid, string $step ) {
 		return $this->processQueue->storeLastCompletedStep( $pid, $step );
 	}
