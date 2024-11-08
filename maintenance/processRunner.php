@@ -46,7 +46,12 @@ class ProcessRunner extends Maintenance {
 			}, $plugins ) ) . "\n" );
 		}
 
-		$this->logger->info( 'Starting process runner, queue: ' . get_class( $this->manager->getQueue() ) );
+		$this->logger->info( 'Starting process runner, queue: {queue}, plugins: {plugins}', [
+			'queue' => get_class( $this->manager->getQueue() ),
+			'plugins' => implode( ', ', array_map( static function ( $plugin ) {
+				return $plugin->getKey();
+			}, $plugins ) )
+		] );
 		$maxJobs = (int)$this->getOption( 'max-processes', 0 );
 		if ( $this->hasOption( 'wait' ) ) {
 			$this->logger->info( 'Waiting for incoming processes in queue' );
@@ -65,8 +70,8 @@ class ProcessRunner extends Maintenance {
 	 * @return int Number of processes executed
 	 */
 	public function runBatch( int $max ): int {
-		$this->runPlugins();
-		$cnt = 0;
+		$executed = $this->runPlugins();
+		$cnt = $executed;
 		/** @var ProcessInfo $info */
 		foreach ( $this->manager->getEnqueuedProcesses() as $info ) {
 			if ( $max > 0 && $cnt >= $max ) {
@@ -74,26 +79,41 @@ class ProcessRunner extends Maintenance {
 			}
 			$cnt++;
 			$this->executeProcess( $info );
-			$this->runPlugins();
+			$cnt += $this->runPlugins();
 		}
 		return $cnt;
 	}
 
-	private function runPlugins() {
+	/**
+	 * @return int Number of processes executed
+	 */
+	private function runPlugins(): int {
+		$executed = 0;
 		if ( $this->lastPluginRun === null || $this->lastPluginRun < time() - 60 ) {
+			$this->logger->debug( 'Running plugins' );
 			foreach ( $this->manager->getPlugins() as $plugin ) {
 				if ( $plugin instanceof \Psr\Log\LoggerAwareInterface ) {
 					$plugin->setLogger( $this->logger );
 				}
-				$pluginProcess = $plugin->run();
-				if ( $pluginProcess instanceof ProcessInfo ) {
-					$this->logger->info( '*** Executing process from plugin: ***' . $plugin->getKey() );
-					$this->executeProcess( $pluginProcess );
-					$this->logger->info( '**************************************' );
+				$pluginProcesses = $plugin->run( $this->manager, $this->lastPluginRun );
+				$this->logger->info( "Running plugin: " . $plugin->getKey() );
+				if ( empty( $pluginProcesses ) ) {
+					$this->logger->info( 'No processes to run' );
+					continue;
 				}
+				$this->logger->info( '*** Executing processes from plugin: ***' . $plugin->getKey() );
+				foreach ( $pluginProcesses as $pluginProcess ) {
+					if ( $pluginProcess instanceof ProcessInfo ) {
+						$this->executeProcess( $pluginProcess );
+						$plugin->finishProcess( $this->manager->getProcessInfo( $pluginProcess->getPid() ) );
+						$executed++;
+					}
+				}
+				$this->logger->info( '**************************************' );
 			}
 			$this->lastPluginRun = time();
 		}
+		return $executed;
 	}
 
 	/**

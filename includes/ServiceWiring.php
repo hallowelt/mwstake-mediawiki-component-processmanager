@@ -12,7 +12,7 @@ return [
 			$pluginObjects[] = $services->getObjectFactory()->createObject( $plugin );
 		}
 		$pluginObjects = array_filter( $pluginObjects, static function ( $plugin ) {
-			return $plugin instanceof IProcessManagerPlugin;
+			return $plugin instanceof \MWStake\MediaWiki\Component\ProcessManager\IProcessManagerPlugin;
 		} );
 		return new ProcessManager( $services->getService( 'ProcessManager.Queue' ), $pluginObjects );
 	},
