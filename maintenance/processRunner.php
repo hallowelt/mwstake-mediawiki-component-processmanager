@@ -16,6 +16,8 @@ class ProcessRunner extends Maintenance {
 	private $manager;
 	/** @var LoggerInterface */
 	private $logger;
+	/** @var int|null */
+	private $lastPluginRun = null;
 
 	public function __construct() {
 		parent::__construct();
@@ -37,6 +39,12 @@ class ProcessRunner extends Maintenance {
 		$this->output( "Starting ProcessRunner\n" );
 		$this->storeProcessRunnerId( $runnerId, getmypid() );
 		$this->output( "Using queue: " . get_class( $this->manager->getQueue() ) . "\n" );
+		$plugins = $this->manager->getPlugins();
+		if ( !empty( $plugins ) ) {
+			$this->output( "Using plugins: " . implode( ', ', array_map( static function ( $plugin ) {
+				return $plugin->getKey();
+			}, $plugins ) ) . "\n" );
+		}
 
 		$this->logger->info( 'Starting process runner, queue: ' . get_class( $this->manager->getQueue() ) );
 		$maxJobs = (int)$this->getOption( 'max-processes', 0 );
@@ -57,6 +65,7 @@ class ProcessRunner extends Maintenance {
 	 * @return int Number of processes executed
 	 */
 	public function runBatch( int $max ): int {
+		$this->runPlugins();
 		$cnt = 0;
 		/** @var ProcessInfo $info */
 		foreach ( $this->manager->getEnqueuedProcesses() as $info ) {
@@ -65,8 +74,26 @@ class ProcessRunner extends Maintenance {
 			}
 			$cnt++;
 			$this->executeProcess( $info );
+			$this->runPlugins();
 		}
 		return $cnt;
+	}
+
+	private function runPlugins() {
+		if ( $this->lastPluginRun === null || $this->lastPluginRun < time() - 60 ) {
+			foreach ( $this->manager->getPlugins() as $plugin ) {
+				if ( $plugin instanceof \Psr\Log\LoggerAwareInterface ) {
+					$plugin->setLogger( $this->logger );
+				}
+				$pluginProcess = $plugin->run();
+				if ( $pluginProcess instanceof ProcessInfo ) {
+					$this->logger->info( '*** Executing process from plugin: ***' . $plugin->getKey() );
+					$this->executeProcess( $pluginProcess );
+					$this->logger->info( '**************************************' );
+				}
+			}
+			$this->lastPluginRun = time();
+		}
 	}
 
 	/**
@@ -82,9 +109,8 @@ class ProcessRunner extends Maintenance {
 		$phpBinaryPath = $GLOBALS['wgPhpCli'];
 		if ( !file_exists( $phpBinaryPath ) ) {
 			$err = "PHP executable cannot be found. Check if \$wgPhpCli global is correctly set";
-			$this->manager->recordFinish(
-				$info->getPid(), 1, $err
-			);
+			$this->logger->error( $err );
+			$this->manager->recordFinish( $info->getPid(), 1, $err );
 			return;
 		}
 

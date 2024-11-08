@@ -32,4 +32,5 @@ Bootstrapper::getInstance()
 			'class' => 'MWStake\MediaWiki\Component\ProcessManager\ProcessQueue\SimpleDatabaseQueue',
 			'services' => [ "DBLoadBalancer" ]
 		];
+		$GLOBALS['mwsgProcessManagerPlugins'] = [];
 	} );
