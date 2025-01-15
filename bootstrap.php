@@ -6,26 +6,29 @@ if ( defined( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION' ) ) {
 	return;
 }
 
-define( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION', '3.0.0' );
+define( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION', '3.0.3' );
 
 Bootstrapper::getInstance()
 	->register( 'processmanager', static function () {
 		$GLOBALS['wgServiceWiringFiles'][] = __DIR__ . '/includes/ServiceWiring.php';
 
-		$GLOBALS['wgHooks']['LoadExtensionSchemaUpdates'][] = static function ( DatabaseUpdater $updater ) {
-			$dbType = $updater->getDB()->getType();
+		$GLOBALS['wgExtensionFunctions'][] = static function() {
+			$hookContainer = \MediaWiki\MediaWikiServices::getInstance()->getHookContainer();
+			$hookContainer->register( 'LoadExtensionSchemaUpdates', static function ( DatabaseUpdater $updater ) {
+				$dbType = $updater->getDB()->getType();
 
-			$updater->addExtensionTable( 'processes', __DIR__ . "/db/$dbType/processes.sql" );
-			$updater->addExtensionField(
-				'processes',
-				'p_last_completed_step',
-				__DIR__ . "/db/$dbType/patch_last_completed_step.sql"
-			);
-			$updater->addExtensionField(
-				'processes',
-				'p_additional_script_args',
-				__DIR__ . "/db/$dbType/patch_additional_args.sql"
-			);
+				$updater->addExtensionTable( 'processes', __DIR__ . "/db/$dbType/processes.sql" );
+				$updater->addExtensionField(
+					'processes',
+					'p_last_completed_step',
+					__DIR__ . "/db/$dbType/patch_last_completed_step.sql"
+				);
+				$updater->addExtensionField(
+					'processes',
+					'p_additional_script_args',
+					__DIR__ . "/db/$dbType/patch_additional_args.sql"
+				);
+			} );
 		};
 
 		$GLOBALS['mwsgProcessManagerQueue'] = [
