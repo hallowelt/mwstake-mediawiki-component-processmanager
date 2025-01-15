@@ -82,6 +82,7 @@ class ProcessRunner extends Maintenance {
 		$phpBinaryPath = $GLOBALS['wgPhpCli'];
 		if ( !file_exists( $phpBinaryPath ) ) {
 			$err = "PHP executable cannot be found. Check if \$wgPhpCli global is correctly set";
+			$this->logger->error( $err );
 			$this->manager->recordFinish(
 				$info->getPid(), 1, $err
 			);
