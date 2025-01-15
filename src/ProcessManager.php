@@ -5,16 +5,21 @@ namespace MWStake\MediaWiki\Component\ProcessManager;
 /**
  * @note Here for backward compatibility
  */
-class ProcessManager {
+final class ProcessManager {
 
 	/** @var IProcessQueue */
 	private $processQueue;
 
+	/** @var IProcessManagerPlugin[] */
+	private $plugins;
+
 	/**
 	 * @param IProcessQueue $processQueue
+	 * @param IProcessManagerPlugin[] $plugins
 	 */
-	public function __construct( IProcessQueue $processQueue ) {
+	public function __construct( IProcessQueue $processQueue, array $plugins ) {
 		$this->processQueue = $processQueue;
+		$this->plugins = $plugins;
 	}
 
 	/**
@@ -109,5 +114,12 @@ class ProcessManager {
 	 */
 	public function getEnqueuedProcesses(): array {
 		return $this->processQueue->getEnqueuedProcesses();
+	}
+
+	/**
+	 * @return IProcessManagerPlugin
+	 */
+	public function getPlugins(): array {
+		return $this->plugins;
 	}
 }
