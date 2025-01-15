@@ -9,7 +9,7 @@ final class ProcessManager {
 
 	/** @var IProcessQueue */
 	private $processQueue;
-	
+
 	/** @var IProcessManagerPlugin[] */
 	private $plugins;
 
