@@ -9,8 +9,6 @@ use MWStake\MediaWiki\Component\ProcessManager\IProcessQueue;
 use MWStake\MediaWiki\Component\ProcessManager\ManagedProcess;
 use MWStake\MediaWiki\Component\ProcessManager\ProcessInfo;
 use Symfony\Component\Process\Process;
-use Wikimedia\Rdbms\Database;
-use Wikimedia\Rdbms\DBConnRef;
 use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Rdbms\ILoadBalancer;
 
@@ -18,6 +16,7 @@ class SimpleDatabaseQueue implements IProcessQueue {
 	/** @var ILoadBalancer */
 	private $lb;
 
+	/** @var IDatabase */
 	private $db;
 
 	/**
@@ -184,7 +183,7 @@ class SimpleDatabaseQueue implements IProcessQueue {
 	 * @return IDatabase
 	 */
 	protected function getDB(): IDatabase {
-		if ( !$this->db )  {
+		if ( !$this->db ) {
 			$this->db = $this->lb->getConnection( DB_PRIMARY );
 		}
 		return $this->db;
