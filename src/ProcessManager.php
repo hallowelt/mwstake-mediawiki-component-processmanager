@@ -5,7 +5,7 @@ namespace MWStake\MediaWiki\Component\ProcessManager;
 /**
  * @note Here for backward compatibility
  */
-final class ProcessManager {
+class ProcessManager {
 
 	/** @var IProcessQueue */
 	private $processQueue;
