@@ -9,12 +9,16 @@ use MWStake\MediaWiki\Component\ProcessManager\IProcessQueue;
 use MWStake\MediaWiki\Component\ProcessManager\ManagedProcess;
 use MWStake\MediaWiki\Component\ProcessManager\ProcessInfo;
 use Symfony\Component\Process\Process;
+use Wikimedia\Rdbms\Database;
+use Wikimedia\Rdbms\DBConnRef;
 use Wikimedia\Rdbms\IDatabase;
 use Wikimedia\Rdbms\ILoadBalancer;
 
 class SimpleDatabaseQueue implements IProcessQueue {
 	/** @var ILoadBalancer */
 	private $lb;
+
+	private $db;
 
 	/**
 	 * @param ILoadBalancer $lb
@@ -36,13 +40,14 @@ class SimpleDatabaseQueue implements IProcessQueue {
 	public function enqueueProcess( ManagedProcess $process, array $data ): ?string {
 		$pid = md5( rand( 1, 9999999 ) + ( new \DateTime() )->getTimestamp() );
 
-		$res = $this->getDB()->insert(
+		$db = $this->getDB();
+		$res = $db->insert(
 			'processes',
 			[
 				'p_pid' => $pid,
 				'p_state' => Process::STATUS_READY,
 				'p_timeout' => $process->getTimeout(),
-				'p_started' => $this->getDB()->timestamp( ( new DateTime() )->format( 'YmdHis' ) ),
+				'p_started' => $db->timestamp( ( new DateTime() )->format( 'YmdHis' ) ),
 				'p_output' => json_encode( $data ),
 				'p_steps' => json_encode( $process->getSteps() ),
 				'p_additional_script_args' => $process->getAdditionalArgs() ?
@@ -50,6 +55,7 @@ class SimpleDatabaseQueue implements IProcessQueue {
 			],
 			__METHOD__
 		);
+		$this->tryClose( $db, __METHOD__ );
 
 		return $res ? $pid : null;
 	}
@@ -145,7 +151,8 @@ class SimpleDatabaseQueue implements IProcessQueue {
 	 * @inheritDoc
 	 */
 	public function getEnqueuedProcesses(): array {
-		$res = $this->getDB()->select(
+		$db = $this->getDB();
+		$res = $db->select(
 			'processes',
 			[
 				'p_pid',
@@ -164,6 +171,8 @@ class SimpleDatabaseQueue implements IProcessQueue {
 			],
 			__METHOD__
 		);
+		$this->tryClose( $db, __METHOD__ );
+
 		$processes = [];
 		foreach ( $res as $row ) {
 			$processes[] = ProcessInfo::newFromRow( $row );
@@ -175,7 +184,10 @@ class SimpleDatabaseQueue implements IProcessQueue {
 	 * @return IDatabase
 	 */
 	protected function getDB(): IDatabase {
-		return $this->lb->getConnection( DB_PRIMARY );
+		if ( !$this->db )  {
+			$this->db = $this->lb->getConnection( DB_PRIMARY );
+		}
+		return $this->db;
 	}
 
 	/**
@@ -184,8 +196,8 @@ class SimpleDatabaseQueue implements IProcessQueue {
 	 */
 	private function loadProcess( $pid ): ?ProcessInfo {
 		$this->garbageCollect();
-
-		$row = $this->getDB()->selectRow(
+		$db = $this->getDB();
+		$row = $db->selectRow(
 			'processes',
 			[
 				'p_pid',
@@ -204,6 +216,7 @@ class SimpleDatabaseQueue implements IProcessQueue {
 			],
 			__METHOD__
 		);
+		$this->tryClose( $db, __METHOD__ );
 
 		if ( !$row ) {
 			return null;
@@ -217,12 +230,15 @@ class SimpleDatabaseQueue implements IProcessQueue {
 	 * @return bool
 	 */
 	private function updateInfo( $pid, array $data ) {
-		return $this->getDB()->update(
+		$db = $this->getDB();
+		$res = $db->update(
 			'processes',
 			$data,
 			[ 'p_pid' => $pid ],
 			__METHOD__
 		);
+		$this->tryClose( $db, __METHOD__ );
+		return $res;
 	}
 
 	/**
@@ -230,14 +246,29 @@ class SimpleDatabaseQueue implements IProcessQueue {
 	 */
 	private function garbageCollect() {
 		$dayAgo = ( new DateTime() )->sub( new DateInterval( 'P1D' ) );
-		$this->getDB()->delete(
+		$db = $this->getDB();
+		$db->delete(
 			'processes',
 			[
-				'p_started < ' . $this->getDB()->timestamp( $dayAgo->format( 'YmdHis' ) ),
+				'p_started < ' . $db->timestamp( $dayAgo->format( 'YmdHis' ) ),
 				// Status is not PROCESS_INTERRUPTED
-				'p_state != ' . $this->getDB()->addQuotes( InterruptingProcessStep::STATUS_INTERRUPTED ),
+				'p_state != ' . $db->addQuotes( InterruptingProcessStep::STATUS_INTERRUPTED ),
 			],
 			__METHOD__
 		);
+		$this->tryClose( $db, __METHOD__ );
+	}
+
+	/**
+	 * @param IDatabase $db
+	 * @param string $method
+	 * @return void
+	 */
+	protected function tryClose( IDatabase $db, string $method ) {
+		try {
+			$db->close();
+		} catch ( \Exception $e ) {
+			// @todo log
+		}
 	}
 }
