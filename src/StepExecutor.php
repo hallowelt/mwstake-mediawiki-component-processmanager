@@ -3,7 +3,6 @@
 namespace MWStake\MediaWiki\Component\ProcessManager;
 
 use Exception;
-
 use Wikimedia\ObjectFactory\ObjectFactory;
 
 class StepExecutor {
