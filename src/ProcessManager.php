@@ -110,10 +110,10 @@ class ProcessManager {
 	}
 
 	/**
-	 * @return array
+	 * @return ProcessInfo|null
 	 */
-	public function getEnqueuedProcesses(): array {
-		return $this->processQueue->getEnqueuedProcesses();
+	public function pluckOneFromQueue(): ?ProcessInfo {
+		return $this->processQueue->pluckOneFromQueue();
 	}
 
 	/**

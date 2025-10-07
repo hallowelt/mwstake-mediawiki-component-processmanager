@@ -31,13 +31,7 @@ class ProcessRunner extends Maintenance {
 	public function execute() {
 		$this->logger = LoggerFactory::getInstance( 'ProcessRunner' );
 		$this->manager = MediaWikiServices::getInstance()->getService( 'ProcessManager' );
-		$runnerId = $this->getRunnerId();
-		if ( $this->isRunnerRunning( $runnerId ) ) {
-			$this->output( "ProcessRunner with these arguments is already running\n" );
-			exit();
-		}
 		$this->output( "Starting ProcessRunner\n" );
-		$this->storeProcessRunnerId( $runnerId, getmypid() );
 		$this->output( "Using queue: " . get_class( $this->manager->getQueue() ) . "\n" );
 		$plugins = $this->manager->getPlugins();
 		if ( !empty( $plugins ) ) {
@@ -53,35 +47,29 @@ class ProcessRunner extends Maintenance {
 			}, $plugins ) )
 		] );
 		$maxJobs = (int)$this->getOption( 'max-processes', 0 );
-		if ( $this->hasOption( 'wait' ) ) {
-			$this->logger->info( 'Waiting for incoming processes in queue' );
-			while ( true ) {
-				$this->runBatch( $maxJobs );
-				sleep( 1 );
-			}
-		} else {
-			$this->logger->info( 'Running processes in queue and exiting after' );
-			$this->runBatch( $maxJobs );
-		}
-	}
+		$executed = 0;
+		$shouldWait = $this->hasOption( 'wait' );
 
-	/**
-	 * @param int $max
-	 * @return int Number of processes executed
-	 */
-	public function runBatch( int $max ): int {
-		$executed = $this->runPlugins();
-		$cnt = $executed;
-		/** @var ProcessInfo $info */
-		foreach ( $this->manager->getEnqueuedProcesses() as $info ) {
-			if ( $max > 0 && $cnt >= $max ) {
+		while ( true ) {
+			$nextProcess = $this->manager->pluckOneFromQueue();
+			if ( $nextProcess ) {
+				$this->executeProcess( $nextProcess );
+				$executed++;
+			} elseif ( $shouldWait ) {
+				sleep( 1 );
+			} else {
 				break;
 			}
-			$cnt++;
-			$this->executeProcess( $info );
-			$cnt += $this->runPlugins();
+
+			$this->runPlugins();
 		}
-		return $cnt;
+		$this->runPlugins();
+
+		if ( $maxJobs ) {
+			$this->output( "Executed $executed processes, max limit of $maxJobs reached, exiting\n" );
+		} else {
+			$this->output( "No more processes in queue, executed $executed processes, exiting\n" );
+		}
 	}
 
 	/**
@@ -125,6 +113,7 @@ class ProcessRunner extends Maintenance {
 		global $argv;
 
 		$this->logger->info( 'Starting process: ' . $info->getPid() );
+		$this->manager->recordStart( $info->getPid() );
 		$this->output( "Starting process {$info->getPid()}..." );
 		$phpBinaryPath = $GLOBALS['wgPhpCli'];
 		if ( !file_exists( $phpBinaryPath ) ) {
@@ -186,103 +175,6 @@ class ProcessRunner extends Maintenance {
 		$this->logger->info( 'Process failed' );
 		$this->logger->debug( $errorOut );
 		$this->output( "Failed\n" );
-	}
-
-	/**
-	 * Generate unique runner id
-	 * This id includes passed `script-args` to allow for different runners to be
-	 * started with different arguments in parallel
-	 * @return string
-	 */
-	private function getRunnerId(): string {
-		// Path to mainenance script
-		$id = md5( $this->parameters->getArg( 0 ) );
-		if ( $this->hasOption( 'script-args' ) ) {
-			$value = $this->getOption( 'script-args' );
-			$value = str_replace( ' ', '', $value );
-			$value = str_replace( '-', '', $value );
-			$id .= '#' . md5( $value );
-		}
-		return $id;
-	}
-
-	/**
-	 * Check is ProcessRunner is running
-	 * @param string $id Runner id
-	 *
-	 * @return bool
-	 */
-	private function isRunnerRunning( $id ): bool {
-		$file = sys_get_temp_dir() . '/process-runner.pid';
-		if ( !file_exists( $file ) ) {
-			return false;
-		}
-		$fileData = json_decode( file_get_contents( $file ), true );
-		if ( !$fileData ) {
-			return false;
-		}
-		if ( !isset( $fileData[$id] ) ) {
-			return false;
-		}
-
-		$pid = (int)$fileData[$id];
-		if ( wfIsWindows() ) {
-			return $this->isWindowsPidRunning( $pid );
-		}
-		return (bool)posix_getsid( $pid );
-	}
-
-	/**
-	 * Store PID of the ProcessRunner instance
-	 * @param string $id Runner id
-	 * @param int $pid Process id for the runner
-	 *
-	 * @return bool
-	 */
-	private function storeProcessRunnerId( string $id, int $pid ): bool {
-		$file = sys_get_temp_dir() . '/process-runner.pid';
-
-		$data = [];
-		if ( file_exists( $file ) ) {
-			$fileData = json_decode( file_get_contents( $file ), true );
-			if ( is_array( $fileData ) ) {
-				$data = $fileData;
-			}
-		}
-		$data[$id] = $pid;
-		return (bool)file_put_contents( $file, json_encode( $data ) );
-	}
-
-	/**
-	 * @param string|int $pid
-	 *
-	 * @return bool
-	 */
-	private function isWindowsPidRunning( $pid ): bool {
-		$taskList = [];
-		// @codingStandardsIgnoreStart
-		exec( "tasklist 2>NUL", $taskList );
-		// @codingStandardsIgnoreEnd
-		foreach ( $taskList as $line ) {
-			// Get PID
-			$line = preg_replace( '/\s+/', ' ', $line );
-			$line = explode( ' ', $line );
-			$line = array_filter( $line );
-			$line = array_values( $line );
-			if ( count( $line ) < 2 ) {
-				continue;
-			}
-			$pidLine = $line[1];
-			if ( !is_numeric( $pidLine ) ) {
-				continue;
-			}
-			$pidLine = (int)$pidLine;
-			if ( $pidLine === (int)$pid ) {
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 	/**

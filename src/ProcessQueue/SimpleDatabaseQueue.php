@@ -149,9 +149,9 @@ class SimpleDatabaseQueue implements IProcessQueue {
 	/**
 	 * @inheritDoc
 	 */
-	public function getEnqueuedProcesses(): array {
+	public function pluckOneFromQueue(): ?ProcessInfo {
 		$db = $this->getDB();
-		$res = $db->select(
+		$row = $db->selectRow(
 			'processes',
 			[
 				'p_pid',
@@ -170,13 +170,14 @@ class SimpleDatabaseQueue implements IProcessQueue {
 			],
 			__METHOD__
 		);
+		if ( !$row ) {
+			$this->tryClose( $db, __METHOD__ );
+			return null;
+		}
+		$db->update( 'processes', [ 'p_state' => 'claimed' ], [ 'p_pid' => $row->p_pid ], __METHOD__ );
 		$this->tryClose( $db, __METHOD__ );
 
-		$processes = [];
-		foreach ( $res as $row ) {
-			$processes[] = ProcessInfo::newFromRow( $row );
-		}
-		return $processes;
+		return ProcessInfo::newFromRow( $row );
 	}
 
 	/**
