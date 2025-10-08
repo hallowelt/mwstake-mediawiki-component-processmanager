@@ -73,36 +73,30 @@ class ProcessRunner extends Maintenance {
 	}
 
 	/**
-	 * @return int Number of processes executed
+	 * @return void
 	 */
-	private function runPlugins(): int {
-		$executed = 0;
+	private function runPlugins(): void {
 		if ( $this->lastPluginRun === null || $this->lastPluginRun < time() - 60 ) {
 			$this->logger->debug( 'Running plugins' );
 			foreach ( $this->manager->getPlugins() as $plugin ) {
 				if ( $plugin instanceof \Psr\Log\LoggerAwareInterface ) {
 					$plugin->setLogger( $this->logger );
 				}
-				$pluginProcesses = $plugin->run( $this->manager, $this->lastPluginRun );
-				// TODO: Schedule, allow others to run it
+
 				$this->logger->info( "Running plugin: " . $plugin->getKey() );
+				$pluginProcesses = $plugin->run( $this->manager, $this->lastPluginRun );
+
+				$this->logger->info( '*** Scheduled {count} processes from plugin: {pluginKey} ***', [
+					'count' => count( $pluginProcesses ),
+					'pluginKey' => $plugin->getKey()
+				] );
 				if ( empty( $pluginProcesses ) ) {
-					$this->logger->info( 'No processes to run' );
 					continue;
-				}
-				$this->logger->info( '*** Executing processes from plugin: ***' . $plugin->getKey() );
-				foreach ( $pluginProcesses as $pluginProcess ) {
-					if ( $pluginProcess instanceof ProcessInfo ) {
-						$this->executeProcess( $pluginProcess );
-						$plugin->finishProcess( $this->manager->getProcessInfo( $pluginProcess->getPid() ) );
-						$executed++;
-					}
 				}
 				$this->logger->info( '**************************************' );
 			}
 			$this->lastPluginRun = time();
 		}
-		return $executed;
 	}
 
 	/**

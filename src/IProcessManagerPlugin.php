@@ -13,13 +13,6 @@ interface IProcessManagerPlugin {
 	public function run( ProcessManager $manager, ?int $lastRun ): array;
 
 	/**
-	 * Called when plugin process finished
-	 * @param ProcessInfo $info
-	 * @return void
-	 */
-	public function finishProcess( ProcessInfo $info ): void;
-
-	/**
 	 * Symbolic name of the plugin
 	 * @return string
 	 */
