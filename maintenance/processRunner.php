@@ -84,6 +84,7 @@ class ProcessRunner extends Maintenance {
 					$plugin->setLogger( $this->logger );
 				}
 				$pluginProcesses = $plugin->run( $this->manager, $this->lastPluginRun );
+				// TODO: Schedule, allow others to run it
 				$this->logger->info( "Running plugin: " . $plugin->getKey() );
 				if ( empty( $pluginProcesses ) ) {
 					$this->logger->info( 'No processes to run' );
