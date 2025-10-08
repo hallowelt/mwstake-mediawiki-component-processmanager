@@ -51,6 +51,7 @@ class ProcessRunner extends Maintenance {
 		$shouldWait = $this->hasOption( 'wait' );
 
 		while ( true ) {
+			$this->runPlugins();
 			$nextProcess = $this->manager->pluckOneFromQueue();
 			if ( $nextProcess ) {
 				$this->executeProcess( $nextProcess );
@@ -60,10 +61,7 @@ class ProcessRunner extends Maintenance {
 			} else {
 				break;
 			}
-
-			$this->runPlugins();
 		}
-		$this->runPlugins();
 
 		if ( $maxJobs ) {
 			$this->output( "Executed $executed processes, max limit of $maxJobs reached, exiting\n" );
