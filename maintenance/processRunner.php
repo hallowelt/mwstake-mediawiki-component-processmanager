@@ -18,6 +18,8 @@ class ProcessRunner extends Maintenance {
 	private $logger;
 	/** @var int|null */
 	private $lastPluginRun = null;
+	/** @var string */
+	private string $uuid = '';
 
 	public function __construct() {
 		parent::__construct();
@@ -39,6 +41,8 @@ class ProcessRunner extends Maintenance {
 				return $plugin->getKey();
 			}, $plugins ) ) . "\n" );
 		}
+		// Process unique ID
+		$this->uuid = uniqid( 'prc', true );
 
 		$this->logger->info( 'Starting process runner, queue: {queue}, plugins: {plugins}', [
 			'queue' => get_class( $this->manager->getQueue() ),
@@ -77,6 +81,11 @@ class ProcessRunner extends Maintenance {
 		if ( $this->lastPluginRun === null || $this->lastPluginRun < time() - 60 ) {
 			$this->logger->debug( 'Running plugins' );
 			foreach ( $this->manager->getPlugins() as $plugin ) {
+				if ( !$this->manager->claimPlugin( $plugin, $this->uuid ) ) {
+					// Another instance is taking care this plugin now
+					continue;
+				}
+				var_dump( $this->uuid . ' claimed ' . $plugin->getKey() );
 				if ( $plugin instanceof \Psr\Log\LoggerAwareInterface ) {
 					$plugin->setLogger( $this->logger );
 				}

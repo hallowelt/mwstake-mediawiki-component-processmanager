@@ -5,6 +5,7 @@ namespace MWStake\MediaWiki\Component\ProcessManager\ProcessQueue;
 use DateInterval;
 use DateTime;
 use MWStake\MediaWiki\Component\ProcessManager\InterruptingProcessStep;
+use MWStake\MediaWiki\Component\ProcessManager\IProcessManagerPlugin;
 use MWStake\MediaWiki\Component\ProcessManager\IProcessQueue;
 use MWStake\MediaWiki\Component\ProcessManager\ManagedProcess;
 use MWStake\MediaWiki\Component\ProcessManager\ProcessInfo;
@@ -178,6 +179,70 @@ class SimpleDatabaseQueue implements IProcessQueue {
 		$this->tryClose( $db, __METHOD__ );
 
 		return ProcessInfo::newFromRow( $row );
+	}
+
+	/**
+	 * @param IProcessManagerPlugin $plugin
+	 * @param string $requester
+	 * @return bool
+	 */
+	public function claimPlugin( IProcessManagerPlugin $plugin, string $requester ): bool {
+		$db = $this->getDB();
+		$db->startAtomic( __METHOD__ );
+
+		$threshold = ( new DateTime() )->sub( new DateInterval( 'PT1M' ) );
+		$claim = $db->newSelectQueryBuilder()
+			->from( 'process_plugin_lock' )
+			->select( [ 'ppl_claimed_by', 'ppl_locked_at' ] )
+			->where( [
+				'ppl_plugin_name' => $plugin->getKey()
+			] )
+			->caller( __METHOD__ )
+			->fetchRow();
+
+		if ( !$claim ) {
+			$db->insert(
+				'process_plugin_lock',
+				[
+					'ppl_plugin_name' => $plugin->getKey(),
+					'ppl_claimed_by' => $requester,
+					'ppl_locked_at' => $db->timestamp( ( new DateTime() )->format( 'YmdHis' ) )
+				],
+				__METHOD__
+			);
+			$db->endAtomic( __METHOD__ );
+			$this->tryClose( $db, __METHOD__ );
+			return true;
+		}
+		$claimedBy = $claim->ppl_claimed_by;
+		$claimedAt = DateTime::createFromFormat( 'YmdHis', $claim->ppl_locked_at );
+
+		if (
+			$claim &&
+			$claim->ppl_claimed_by !== $requester &&
+			$claimedAt > $threshold
+		) {
+			// Some other instance claimed it recently
+			$db->endAtomic( __METHOD__ );
+			$this->tryClose( $db, __METHOD__ );
+			return false;
+		}
+
+		// Take claim over
+		$db->update(
+			'process_plugin_lock',
+			[
+				'ppl_locked_at' => $db->timestamp( ( new DateTime() )->format( 'YmdHis' ) ),
+				'ppl_claimed_by' => $requester,
+			],
+			[
+				'ppl_plugin_name' => $plugin->getKey(),
+			],
+			__METHOD__
+		);
+		$db->endAtomic( __METHOD__ );
+		$this->tryClose( $db, __METHOD__ );
+		return true;
 	}
 
 	/**

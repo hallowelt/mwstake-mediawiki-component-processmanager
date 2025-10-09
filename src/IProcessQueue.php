@@ -61,4 +61,11 @@ interface IProcessQueue {
 	 * @return ProcessInfo|null Returns null if no process in the queue
 	 */
 	public function pluckOneFromQueue(): ?ProcessInfo;
+
+	/**
+	 * @param IProcessManagerPlugin $plugin
+	 * @param string $requester
+	 * @return bool
+	 */
+	public function claimPlugin( IProcessManagerPlugin $plugin, string $requester ): bool;
 }

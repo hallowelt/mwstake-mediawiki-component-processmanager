@@ -122,4 +122,13 @@ class ProcessManager {
 	public function getPlugins(): array {
 		return $this->plugins;
 	}
+
+	/**
+	 * @param IProcessManagerPlugin $plugin
+	 * @param string $requester
+	 * @return bool
+	 */
+	public function claimPlugin( IProcessManagerPlugin $plugin, string $requester ): bool {
+		return $this->processQueue->claimPlugin( $plugin, $requester );
+	}
 }

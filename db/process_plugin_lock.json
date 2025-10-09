@@ -1,0 +1,33 @@
+[
+	{
+		"name": "process_plugin_lock",
+		"columns": [
+			{
+				"name": "ppl_plugin_name",
+				"type": "binary",
+				"options": {
+					"length": 255,
+					"notnull": true
+				}
+			},
+			{
+				"name": "ppl_locked_at",
+				"type": "binary",
+				"options": {
+					"length": 255,
+					"notnull": true
+				}
+			},
+			{
+				"name": "ppl_claimed_by",
+				"type": "binary",
+				"options": {
+					"length": 255,
+					"notnull": true
+				}
+			}
+		],
+		"indexes": [],
+		"pk": [ "ppl_plugin_name" ]
+	}
+]
