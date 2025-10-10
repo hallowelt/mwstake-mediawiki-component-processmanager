@@ -68,7 +68,7 @@ class ProcessManager {
 	 * @return bool
 	 */
 	public function recordFinish( $pid, int $exitCode, string $exitStatus = '', $data = [] ) {
-		return $this->processQueue->recordFinish( $pid, $exitCode, $exitStatus, $data );
+		return $this->processQueue->recordFinish( $pid, $exitCode, $exitStatus, $data ?? [] );
 	}
 
 	/**
