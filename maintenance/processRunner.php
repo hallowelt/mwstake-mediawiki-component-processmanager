@@ -85,7 +85,6 @@ class ProcessRunner extends Maintenance {
 					// Another instance is taking care this plugin now
 					continue;
 				}
-				var_dump( $this->uuid . ' claimed ' . $plugin->getKey() );
 				if ( $plugin instanceof \Psr\Log\LoggerAwareInterface ) {
 					$plugin->setLogger( $this->logger );
 				}
