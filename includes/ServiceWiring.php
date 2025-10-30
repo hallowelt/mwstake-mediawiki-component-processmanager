@@ -6,7 +6,7 @@ use MWStake\MediaWiki\Component\ProcessManager\ProcessManager;
 
 return [
 	'ProcessManager' => static function ( MediaWikiServices $services ) {
-		$plugins = $GLOBALS['mwsgProcessManagerPlugins'];
+		$plugins = $GLOBALS['mwsgProcessManagerPlugins'] ?? [];
 		$pluginObjects = [];
 		foreach ( $plugins as $plugin ) {
 			$pluginObjects[] = $services->getObjectFactory()->createObject( $plugin );
@@ -17,7 +17,7 @@ return [
 		return new ProcessManager( $services->getService( 'ProcessManager.Queue' ), $pluginObjects );
 	},
 	'ProcessManager.Queue' => static function ( MediaWikiServices $services ) {
-		$queue = $services->getObjectFactory()->createObject( $GLOBALS['mwsgProcessManagerQueue'] );
+		$queue = $services->getObjectFactory()->createObject( $GLOBALS['mwsgProcessManagerQueue'] ?? [] );
 		if ( !$queue instanceof IProcessQueue ) {
 			throw new RuntimeException( 'Invalid process queue configuration' );
 		}
