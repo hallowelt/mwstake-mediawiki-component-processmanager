@@ -150,11 +150,11 @@ class SimpleDatabaseQueue implements IProcessQueue {
 	/**
 	 * @inheritDoc
 	 */
-	public function pluckOneFromQueue(): ?ProcessInfo {
+	public function pluckOneFromQueue( string $runnerUUID ): ?ProcessInfo {
 		$db = $this->getDB();
-		$row = $db->selectRow(
-			'processes',
-			[
+
+		$row = $db->newSelectQueryBuilder()
+			->select( [
 				'p_pid',
 				'p_state',
 				'p_exitcode',
@@ -165,17 +165,31 @@ class SimpleDatabaseQueue implements IProcessQueue {
 				'p_steps',
 				'p_last_completed_step',
 				'p_additional_script_args'
-			],
-			[
-				'p_state' => Process::STATUS_READY
-			],
-			__METHOD__
-		);
+			] )
+			->from( 'processes' )
+			->where( [
+				'p_state' => Process::STATUS_READY,
+				$db->makeList( [
+					'p_claimed_by IS NULL',
+					'p_claimed_by = ' . $db->addQuotes( $runnerUUID )
+				], LIST_OR ),
+			] )
+			->caller( __METHOD__ )
+			->fetchRow();
+
 		if ( !$row ) {
 			$this->tryClose( $db, __METHOD__ );
 			return null;
 		}
-		$db->update( 'processes', [ 'p_state' => 'claimed' ], [ 'p_pid' => $row->p_pid ], __METHOD__ );
+
+		// Claim job
+		$db->newUpdateQueryBuilder()
+			->update( 'processes' )
+			->set( [ 'p_claimed_by' => $runnerUUID ] )
+			->andSet( [ 'p_state' => 'claimed' ] )
+			->where( [ 'p_pid' => $row->p_pid ] )
+			->caller( __METHOD__ )
+			->execute();
 		$this->tryClose( $db, __METHOD__ );
 
 		return ProcessInfo::newFromRow( $row );

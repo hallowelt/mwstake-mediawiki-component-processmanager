@@ -6,7 +6,7 @@ if ( defined( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION' ) ) {
 	return;
 }
 
-define( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION', '4.0.4' );
+define( 'MWSTAKE_MEDIAWIKI_COMPONENT_PROCESSMANAGER_VERSION', '5.0.0' );
 
 Bootstrapper::getInstance()
 	->register( 'processmanager', static function () {
@@ -32,12 +32,27 @@ Bootstrapper::getInstance()
 					'p_additional_script_args',
 					__DIR__ . "/db/$dbType/patch_additional_args.sql"
 				);
+				$updater->addExtensionField(
+					'processes',
+					'p_claimed_by',
+					__DIR__ . "/db/$dbType/patch_process_claim.sql"
+				);
 			} );
 		};
 
-		$GLOBALS['mwsgProcessManagerQueue'] = [
+	if ( !isset( $GLOBALS['mwsgProcessManagerQueueConfig'] ) ) {
+		$GLOBALS['mwsgProcessManagerQueueConfig'] = [];
+	}
+		$GLOBALS['mwsgProcessManagerQueueConfig']['local'] = [
 			'class' => 'MWStake\MediaWiki\Component\ProcessManager\ProcessQueue\SimpleDatabaseQueue',
 			'services' => [ "DBLoadBalancer" ]
 		];
-		$GLOBALS['mwsgProcessManagerPlugins'] = [];
+
+		if ( !isset( $GLOBALS['mwsgProcessManagerQueue'] ) ) {
+			$GLOBALS['mwsgProcessManagerQueue'] = 'local';
+		}
+
+		if ( isset( $GLOBALS['mwsgProcessManagerPlugins'] ) ) {
+			$GLOBALS['mwsgProcessManagerPlugins'] = [];
+		}
 	} );

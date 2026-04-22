@@ -44,7 +44,8 @@ class ProcessRunner extends Maintenance {
 		// Process unique ID
 		$this->uuid = uniqid( 'prc', true );
 
-		$this->logger->info( 'Starting process runner, queue: {queue}, plugins: {plugins}', [
+		$this->logger->info( 'Starting process runner {uuid}, queue: {queue}, plugins: {plugins}', [
+			'uuid' => $this->uuid,
 			'queue' => get_class( $this->manager->getQueue() ),
 			'plugins' => implode( ', ', array_map( static function ( $plugin ) {
 				return $plugin->getKey();
@@ -56,7 +57,7 @@ class ProcessRunner extends Maintenance {
 
 		while ( true ) {
 			$this->runPlugins();
-			$nextProcess = $this->manager->pluckOneFromQueue();
+			$nextProcess = $this->manager->pluckOneFromQueue( $this->uuid );
 			if ( $nextProcess ) {
 				$this->executeProcess( $nextProcess );
 				$executed++;
@@ -115,7 +116,7 @@ class ProcessRunner extends Maintenance {
 
 		$this->logger->info( 'Starting process: ' . $info->getPid() );
 		$this->manager->recordStart( $info->getPid() );
-		$this->output( "Starting process {$info->getPid()}..." );
+		$this->output( "Starting process {$info->getPid()} ..." );
 		$phpBinaryPath = $GLOBALS['wgPhpCli'];
 		if ( !file_exists( $phpBinaryPath ) ) {
 			$err = "PHP executable cannot be found. Check if \$wgPhpCli global is correctly set";

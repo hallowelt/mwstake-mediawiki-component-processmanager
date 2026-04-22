@@ -110,10 +110,11 @@ class ProcessManager {
 	}
 
 	/**
+	 * @param string $runnerUUID
 	 * @return ProcessInfo|null
 	 */
-	public function pluckOneFromQueue(): ?ProcessInfo {
-		return $this->processQueue->pluckOneFromQueue();
+	public function pluckOneFromQueue( string $runnerUUID ): ?ProcessInfo {
+		return $this->processQueue->pluckOneFromQueue( $runnerUUID );
 	}
 
 	/**
