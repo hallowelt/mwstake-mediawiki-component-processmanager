@@ -17,7 +17,7 @@ Require this component in the `composer.json` of your extension:
 ```json
 {
 	"require": {
-		"mwstake/mediawiki-component-processmanager": "~3"
+		"mwstake/mediawiki-component-processmanager": "~5"
 	}
 }
 ```
