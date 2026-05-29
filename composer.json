@@ -12,7 +12,6 @@
 	"require": {
 		"composer/installers": "~1.0|~2",
 		"symfony/process": "~5|~6",
-		"symfony/filesystem": "~3",
 		"mwstake/mediawiki-componentloader": "~1"
 	},
 	"require-dev": {
