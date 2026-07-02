@@ -5,7 +5,9 @@ use MediaWiki\MediaWikiServices;
 use MWStake\MediaWiki\Component\ProcessManager\ProcessInfo;
 use MWStake\MediaWiki\Component\ProcessManager\ProcessManager;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Symfony\Component\Process\InputStream;
+use Symfony\Component\Process\Process as SymfonyProcess;
 
 require_once $argv[1];
 
@@ -148,35 +150,56 @@ class ProcessRunner extends Maintenance {
 		] ) );
 
 		$process->setTimeout( $info->getTimeout() );
-		$process->start();
-		$input->close();
+		[ $status, $outputData, $exitCode ] = $this->doExecuteProcess( $process, $input );
 
-		$process->wait();
+		if ( $status === 'failed' || $status === 'timeout' ) {
+			$this->manager->recordFinish(
+				$info->getPid(), $exitCode, "failed", [ 'stack' => $outputData ]
+			);
+
+			$this->logger->info( 'Process failed' );
+			$this->logger->debug( $outputData );
+
+			$this->output( "$status\n" );
+		} elseif ( $status === 'interrupt' ) {
+			$this->manager->recordInterrupt( $info->getPid(), $outputData['interrupt'], $outputData['data'] );
+			$this->logger->info( 'Process interrupted' );
+			$this->logger->debug( 'Interrupted with: ' . json_encode( $outputData ) );
+			$this->output( "Interrupted\n" );
+		} else {
+			$this->manager->recordFinish( $info->getPid(), 0, 'success', $outputData );
+			$this->logger->info( 'Process finished' );
+			$this->logger->debug( 'Output: ' . json_encode( $outputData ) );
+			$this->output( "Finished\n" );
+		}
+	}
+
+	/**
+	 * @param SymfonyProcess $process
+	 * @param InputStream $inputStream
+	 * @return array
+	 */
+	private function doExecuteProcess( SymfonyProcess $process, InputStream $inputStream ): array {
+		$process->start();
+		$inputStream->close();
+
+		try {
+			$process->wait();
+		} catch ( ProcessTimedOutException ) {
+			return [ 'timeout', 'Process timed out', 1 ];
+		} catch ( Throwable $e ) {
+			return [ 'failed', $e->getMessage(), 1 ];
+		}
+
 		if ( $process->isSuccessful() ) {
 			$data = $process->getOutput();
 			$data = json_decode( $data, 1 );
 			if ( isset( $data['interrupt' ] ) ) {
-				$this->manager->recordInterrupt( $info->getPid(), $data['interrupt'], $data['data'] );
-				$this->logger->info( 'Process interrupted' );
-				$this->logger->debug( 'Interrupted with: ' . json_encode( $data ) );
-				$this->output( "Interrupted\n" );
-				return;
+				return [ 'interrupt', $data, 0 ];
 			}
-			$this->manager->recordFinish( $info->getPid(), 0, 'success', $data );
-			$this->logger->info( 'Process finished' );
-			$this->logger->debug( 'Output: ' . json_encode( $data ) );
-			$this->output( "Finished\n" );
-			return;
+			return [ 'success', $data, 0 ];
 		}
-
-		$errorOut = $process->getErrorOutput();
-		$this->manager->recordFinish(
-			$info->getPid(), $process->getExitCode(), "failed", [ 'stack' => $errorOut ]
-		);
-
-		$this->logger->info( 'Process failed' );
-		$this->logger->debug( $errorOut );
-		$this->output( "Failed\n" );
+		return [ 'failed', $process->getErrorOutput(), $process->getExitCode() ];
 	}
 
 	/**
