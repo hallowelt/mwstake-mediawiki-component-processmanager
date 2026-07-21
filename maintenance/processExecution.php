@@ -31,6 +31,9 @@ class ProcessExecution extends Maintenance {
 		$this->output( json_encode( $data ) );
 	}
 
+	/**
+	 * @return mixed
+	 */
 	private function executeSteps() {
 		$manager = MediaWikiServices::getInstance()->getService( 'ProcessManager' );
 		$executor = new StepExecutor(
