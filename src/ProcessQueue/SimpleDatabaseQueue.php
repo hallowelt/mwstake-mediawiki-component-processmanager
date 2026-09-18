@@ -199,6 +199,7 @@ class SimpleDatabaseQueue implements IProcessQueue {
 	 * @param IProcessManagerPlugin $plugin
 	 * @param string $requester
 	 * @return bool
+	 * @throws \DateInvalidOperationException
 	 */
 	public function claimPlugin( IProcessManagerPlugin $plugin, string $requester ): bool {
 		$db = $this->getDB();
@@ -228,7 +229,6 @@ class SimpleDatabaseQueue implements IProcessQueue {
 			$this->tryClose( $db, __METHOD__ );
 			return true;
 		}
-		$claimedBy = $claim->ppl_claimed_by;
 		$claimedAt = DateTime::createFromFormat( 'YmdHis', $claim->ppl_locked_at );
 
 		if (
@@ -257,6 +257,25 @@ class SimpleDatabaseQueue implements IProcessQueue {
 		$db->endAtomic( __METHOD__ );
 		$this->tryClose( $db, __METHOD__ );
 		return true;
+	}
+
+	/**
+	 * @param IProcessManagerPlugin $plugin
+	 * @param string $requester
+	 * @return bool
+	 */
+	public function releasePlugin( IProcessManagerPlugin $plugin, string $requester ): bool {
+		$db = $this->getDB();
+		$db->newDeleteQueryBuilder()
+			->delete( 'process_plugin_lock' )
+			->where( [
+					'ppl_plugin_name' => $plugin->getKey(),
+					'ppl_claimed_by' => $requester,
+				] )
+			->caller( __METHOD__ )
+			->execute();
+
+		return $db->affectedRows() > 0;
 	}
 
 	/**

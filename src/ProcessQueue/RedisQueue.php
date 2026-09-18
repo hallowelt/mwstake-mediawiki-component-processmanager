@@ -324,6 +324,33 @@ LUA;
 	}
 
 	/**
+	 * @inheritDoc
+	 */
+	public function releasePlugin( IProcessManagerPlugin $plugin, string $requester ): bool {
+		$conn = $this->getConnection();
+		if ( !$conn ) {
+			return false;
+		}
+		try {
+			$lockKey = $this->pluginLockKey( $plugin->getKey() );
+			$raw = $conn->get( $lockKey );
+			if ( $raw === false ) {
+				return false;
+			}
+
+			$claim = json_decode( $raw, true );
+			if ( !is_array( $claim ) || ( $claim['ppl_claimed_by'] ?? null ) !== $requester ) {
+				return false;
+			}
+
+			return $conn->del( $lockKey ) > 0;
+		} catch ( RedisException $e ) {
+			$this->handleError( $conn, $e );
+			return false;
+		}
+	}
+
+	/**
 	 * @param string $pid
 	 * @return string Redis key for process data
 	 */

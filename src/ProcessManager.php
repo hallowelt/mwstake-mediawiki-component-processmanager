@@ -132,4 +132,13 @@ class ProcessManager {
 	public function claimPlugin( IProcessManagerPlugin $plugin, string $requester ): bool {
 		return $this->processQueue->claimPlugin( $plugin, $requester );
 	}
+
+	/**
+	 * @param IProcessManagerPlugin $plugin
+	 * @param string $requester
+	 * @return bool
+	 */
+	public function releasePlugin( IProcessManagerPlugin $plugin, string $requester ): bool {
+		return $this->processQueue->releasePlugin( $plugin, $requester );
+	}
 }

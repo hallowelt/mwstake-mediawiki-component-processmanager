@@ -69,4 +69,11 @@ interface IProcessQueue {
 	 * @return bool
 	 */
 	public function claimPlugin( IProcessManagerPlugin $plugin, string $requester ): bool;
+
+	/**
+	 * @param IProcessManagerPlugin $plugin
+	 * @param string $requester
+	 * @return bool
+	 */
+	public function releasePlugin( IProcessManagerPlugin $plugin, string $requester ): bool;
 }
