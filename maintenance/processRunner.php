@@ -99,9 +99,12 @@ class ProcessRunner extends Maintenance {
 					'count' => count( $pluginProcesses ),
 					'pluginKey' => $plugin->getKey()
 				] );
-				if ( empty( $pluginProcesses ) ) {
-					continue;
+				if ( $this->manager->releasePlugin( $plugin, $this->uuid ) ) {
+					$this->logger->info( 'Plugin {pluginKey} released', [ 'pluginKey' => $plugin->getKey() ] );
+				} else {
+					$this->logger->info( 'Plugin {pluginKey} already running', [ 'pluginKey' => $plugin->getKey() ] );
 				}
+
 				$this->logger->info( '**************************************' );
 			}
 			$this->lastPluginRun = time();
