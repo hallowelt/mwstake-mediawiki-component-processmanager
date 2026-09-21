@@ -4,20 +4,18 @@ This library allows you to create async background processes, that can be access
 to check the progress and retrieve output. When you start the process it will be enqueue, and wait for the processRunner to execute it.
 
 ## Compatibility
-- `5.0.x` -> MediaWiki 1.43
-- `4.0.x` -> MediaWiki 1.43
-- `3.0.x` -> MediaWiki 1.43
-- `3.0.x` -> MediaWiki 1.39
+- \>= `3.0.x` -> MediaWiki 1.43
+- `2.0.x` -> MediaWiki 1.39
 - `1.0.x` -> MediaWiki 1.35
 
-# Usage
+## Use in a MediaWiki extension
 
 Require this component in the `composer.json` of your extension:
 
 ```json
 {
 	"require": {
-		"mwstake/mediawiki-component-processmanager": "~5"
+		"mwstake/mediawiki-component-processmanager": "~6"
 	}
 }
 ```
