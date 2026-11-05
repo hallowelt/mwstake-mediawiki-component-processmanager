@@ -27,7 +27,8 @@ class ProcessRunner extends Maintenance {
 		parent::__construct();
 		$this->addOption( 'wait', 'Wait for incoming processes in queue' );
 		$this->addOption(
-			'max-processes', 'Max number of processes to start before killing runner'
+			'max-processes', 'Max number of processes to start before killing runner (no effect with --wait)',
+			false, true
 		);
 		$this->addOption( 'script-args', 'Arguments to pass to the script' );
 	}
@@ -53,11 +54,11 @@ class ProcessRunner extends Maintenance {
 				return $plugin->getKey();
 			}, $plugins ) )
 		] );
-		$maxJobs = (int)$this->getOption( 'max-processes', 0 );
-		$executed = 0;
 		$shouldWait = $this->hasOption( 'wait' );
+		$maxJobs = $shouldWait ? 0 : max( 0, (int)$this->getOption( 'max-processes', 0 ) );
+		$executed = 0;
 
-		while ( true ) {
+		while ( !$maxJobs || $executed < $maxJobs ) {
 			$this->runPlugins();
 			$nextProcess = $this->manager->pluckOneFromQueue( $this->uuid );
 			if ( $nextProcess ) {
@@ -70,7 +71,7 @@ class ProcessRunner extends Maintenance {
 			}
 		}
 
-		if ( $maxJobs ) {
+		if ( $maxJobs && $executed >= $maxJobs ) {
 			$this->output( "Executed $executed processes, max limit of $maxJobs reached, exiting\n" );
 		} else {
 			$this->output( "No more processes in queue, executed $executed processes, exiting\n" );
