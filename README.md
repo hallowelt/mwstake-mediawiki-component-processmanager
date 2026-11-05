@@ -168,6 +168,11 @@ Should be executed as either the webserver user or root.
 Normally, runner logs into `ProcessRunner` channel of debug log mechanism, but it might also be useful to capture
 output of the script directly (in crontab line) and pipe that into some log, so we can catch any errors in the runner itself.
 
+To additionally write the log of channel `ProcessRunner` to stdout/stderr (e.g. in containers), set the minimum level
+with `--log-level` or the env var `PROCESS_RUNNER_LOG_LEVEL`: `debug`, `info`, `notice`, `warn` / `warning`, `error`,
+`critical`, `alert` or `emergency`. Records of level `warning` and above go to stderr. Unset or empty (default): no
+additional output.
+
 ## Consirederations that were taken in implementation
 This is not an idea way to set up background processing, but we have taken following considerations into account:
 - we want to have a parent for all processes, so they dont end up as zombies, and we can capture any output of them
