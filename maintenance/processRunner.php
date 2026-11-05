@@ -2,6 +2,7 @@
 
 use MediaWiki\Logger\LoggerFactory;
 use MediaWiki\MediaWikiServices;
+use MWStake\MediaWiki\Component\ProcessManager\ConsoleLogger;
 use MWStake\MediaWiki\Component\ProcessManager\ProcessInfo;
 use MWStake\MediaWiki\Component\ProcessManager\ProcessManager;
 use Psr\Log\LoggerInterface;
@@ -30,10 +31,25 @@ class ProcessRunner extends Maintenance {
 			'max-processes', 'Max number of processes to start before killing runner'
 		);
 		$this->addOption( 'script-args', 'Arguments to pass to the script' );
+		$this->addOption(
+			'log-level',
+			'Additionally write the log of channel "ProcessRunner" from this level on to stdout/stderr '
+				. '(debug, info, notice, warn(ing), error, ...). Defaults to env var PROCESS_RUNNER_LOG_LEVEL',
+			false,
+			true
+		);
 	}
 
 	public function execute() {
 		$this->logger = LoggerFactory::getInstance( 'ProcessRunner' );
+		$logLevel = trim( (string)$this->getOption( 'log-level', getenv( 'PROCESS_RUNNER_LOG_LEVEL' ) ) );
+		if ( $logLevel !== '' ) {
+			try {
+				$this->logger = new ConsoleLogger( $this->logger, $logLevel, 'ProcessRunner' );
+			} catch ( InvalidArgumentException $e ) {
+				$this->error( $e->getMessage() . ", not writing the log to stdout/stderr\n" );
+			}
+		}
 		$this->manager = MediaWikiServices::getInstance()->getService( 'ProcessManager' );
 		$this->output( "Starting ProcessRunner\n" );
 		$this->output( "Using queue: " . get_class( $this->manager->getQueue() ) . "\n" );
