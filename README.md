@@ -152,7 +152,7 @@ a component, which does not have a dedicated place in the codebase structure, an
 - `--wait` - wait for new processes to be added to the queue. In this mode, script will create a lock file, that will
 prevent other runners to be started. This is useful when you want to have only one runner running at a time. In case it crashes
 or is otherwise killed, the lock file will be removed and other runners will be able to start.
-- `--max-jobs` - maximum number of processes to execute in one run. This is useful when you want to limit the number of processes.
+- `--max-processes` - maximum number of processes to execute in one run (e.g. `--max-processes 100`). This is useful when you want to limit the number of processes.
 - `--script-args` - arguments to be passed to `processExecution.php` script. Avoid using if not sure what you are doing.
 
 Crontab example:
@@ -161,7 +161,7 @@ Should be executed as either the webserver user or root.
 * * * * * /usr/bin/php /var/www/html/mw/vendor/mwstake/mediawiki-component-processmanager/maintenance/processRunner.php /var/www/html/mw/maintenance/Maintenance.php --wait'
 ```
 
-** When `--wait` is specified, `--max-processes` has no effect**
+**When `--wait` is specified, `--max-processes` has no effect**
 
 
 ### Logging
