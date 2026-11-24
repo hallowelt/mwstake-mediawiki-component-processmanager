@@ -37,7 +37,7 @@ class ProcessInfo implements JsonSerializable {
 		return new static(
 			$row->p_pid,
 			$row->p_state,
-			DateTime::createFromFormat( 'YmdHis', $row->p_started ),
+			DateTime::createFromFormat( 'YmdHis', wfTimestamp( TS_MW, $row->p_started ) ),
 			$row->p_timeout !== null ? (float)$row->p_timeout : null,
 			$row->p_exitcode !== null ? (int)$row->p_exitcode : null,
 			$row->p_exitstatus,
