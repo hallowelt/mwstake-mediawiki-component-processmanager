@@ -229,7 +229,7 @@ class SimpleDatabaseQueue implements IProcessQueue {
 			$this->tryClose( $db, __METHOD__ );
 			return true;
 		}
-		$claimedAt = DateTime::createFromFormat( 'YmdHis', $claim->ppl_locked_at );
+		$claimedAt = DateTime::createFromFormat( 'YmdHis', wfTimestamp( TS_MW, $claim->ppl_locked_at ) );
 
 		if (
 			$claim &&
@@ -348,7 +348,7 @@ class SimpleDatabaseQueue implements IProcessQueue {
 		$db->delete(
 			'processes',
 			[
-				'p_started < ' . $db->timestamp( $dayAgo->format( 'YmdHis' ) ),
+				$db->expr( 'p_started', '<', $db->timestamp( $dayAgo->format( 'YmdHis' ) ) ),
 				// Status is not PROCESS_INTERRUPTED
 				'p_state != ' . $db->addQuotes( InterruptingProcessStep::STATUS_INTERRUPTED ),
 			],
